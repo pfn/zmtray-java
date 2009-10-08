@@ -1,0 +1,65 @@
+<project name="Zimbra Tray Icon" basedir="." default="compile">
+  <property name="lib.dir" value="lib"/>
+  <property name="build.dir" value="build"/>
+  <property name="test.build.dir" value="${build.dir}/test"/>
+  <property name="src.dir" value="src"/>
+  <property name="java.src.dir" value="${src.dir}/java"/>
+  <property name="test.dir" value="test"/>
+  <property name="java.test.dir" value="${test.dir}/java"/>
+  <property name="dist.file" value="zmtray.jar"/>
+  <path id="class.path">
+    <fileset dir="${lib.dir}" includes="*.jar"/>
+    <fileset dir="/opt/zimbra/lib/jars"
+        includes="zimbrastore.jar, zimbracommon.jar"/>
+  </path>
+  <target name="test" depends="compiletest,dist">
+    <java classname="com.zimbra.app.soap.Test" fork="true">
+      <classpath location="${build.dir}"/>
+      <classpath>
+        <path refid="class.path"/>
+        <path location="${build.dir}"/>
+        <path location="${test.build.dir}"/>
+      </classpath>
+    </java>
+  </target>
+  <target name="clean">
+    <delete dir="${build.dir}"/>
+  </target>
+  <target name="all" depends="clean,dist"/>
+  <target name="compiletest" depends="compile">
+    <mkdir dir="${test.build.dir}"/>
+    <javac srcdir="${java.test.dir}" destdir="${test.build.dir}" debug="on">
+      <classpath>
+        <path refid="class.path"/>
+        <path location="${build.dir}"/>
+      </classpath>
+      <compilerarg value="-Xlint:all,-serial"/>
+    </javac>
+  </target>
+  <target name="compile">
+    <mkdir dir="${build.dir}"/>
+    <javac srcdir="${java.src.dir}" destdir="${build.dir}" debug="on">
+      <classpath>
+        <path refid="class.path"/>
+      </classpath>
+      <compilerarg value="-Xlint:all,-serial"/>
+    </javac>
+  </target>
+  <target name="dist" depends="jar"/>
+  <target name="jar" depends="compile">
+    <jar jarfile="${build.dir}/${dist.file}">
+      <fileset dir="${build.dir}">
+      	<include name="**/*.class"/>
+        <exclude name="test/**"/>
+      </fileset>
+      <fileset dir="${java.src.dir}">
+      	<include name="**/*.png"/>
+      </fileset>
+      <manifest>
+        <attribute name="Main-Class"
+                  value="com.zimbra.app.systray.ZimbraTray"/>
+        <attribute name="Class-Path" value=""/>
+      </manifest>
+    </jar>
+  </target>
+</project>
