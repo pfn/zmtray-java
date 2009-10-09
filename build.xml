@@ -9,8 +9,10 @@
   <property name="dist.file" value="zmtray.jar"/>
   <path id="class.path">
     <fileset dir="${lib.dir}" includes="*.jar"/>
+    <!--
     <fileset dir="/opt/zimbra/lib/jars"
         includes="zimbrastore.jar, zimbracommon.jar"/>
+    -->
   </path>
   <target name="test" depends="compiletest,dist">
     <java classname="com.zimbra.app.soap.Test" fork="true">
@@ -19,6 +21,7 @@
         <path refid="class.path"/>
         <path location="${build.dir}"/>
         <path location="${test.build.dir}"/>
+        <path location="${test.dir}"/>
       </classpath>
     </java>
   </target>
