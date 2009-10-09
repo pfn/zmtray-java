@@ -18,6 +18,8 @@ import com.zimbra.app.soap.messages.GetPrefsRequest;
 import com.zimbra.app.soap.messages.GetPrefsResponse;
 import com.zimbra.app.soap.messages.SearchRequest;
 import com.zimbra.app.soap.messages.SearchResponse;
+import com.zimbra.app.soap.messages.BatchRequest;
+import com.zimbra.app.soap.messages.BatchResponse;
 
 public class Test {
     public static void main(String[] args) throws Exception {
@@ -97,8 +99,6 @@ public class Test {
         m = SoapInterface.call(m, u);
         GetInfoResponse inforesp = Marshaller.unmarshal(
                 GetInfoResponse.class, m);
-        System.out.println("\n Version: " + inforesp.version);
-        System.out.println(" Name: " + inforesp.name);
 
         ///////////////////////////////////////////////////////////////////////
 
@@ -113,7 +113,24 @@ public class Test {
 
         GetFolderResponse folderresp = Marshaller.unmarshal(
                 GetFolderResponse.class, m);
-        for (GetFolderResponse.Folder folder : folderresp.folders) {
+
+        ///////////////////////////////////////////////////////////////////////
+
+        m = SoapInterface.newMessage();
+        BatchRequest batchreq = new BatchRequest();
+        batchreq.folderRequest = folderreq;
+        batchreq.infoRequest = inforeq;
+        Marshaller.marshal(m.getSOAPHeader(), header);
+        Marshaller.marshal(m.getSOAPBody(), batchreq);
+
+        m = SoapInterface.call(m, u);
+
+        BatchResponse batchresp = Marshaller.unmarshal(
+                BatchResponse.class, m);
+
+        System.out.println("\n Version: " + batchresp.infoResponse.version);
+        System.out.println(" Name: " + batchresp.infoResponse.name);
+        for (GetFolderResponse.Folder folder : batchresp.folderResponse.folders) {
             System.out.printf("Folder: [%d] %s\n", folder.id, folder.name);
             for (GetFolderResponse.Folder nested : folder.folders) {
                 System.out.printf(" Nested Folder: [%d] %s (%s)\n", nested.id, nested.name, nested.view);

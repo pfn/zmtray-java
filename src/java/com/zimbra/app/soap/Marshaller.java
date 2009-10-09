@@ -79,7 +79,9 @@ public class Marshaller {
         SOAPBody body = m.getSOAPPart().getEnvelope().getBody();
 
         Element anno = clz.getAnnotation(Element.class);
-        if (anno == null) return null;
+        if (anno == null)
+            throw new IllegalArgumentException(
+                    clz + " is not annotated by @Element");
         String ns = anno.ns();
 
         Iterator<SOAPElement> i = (Iterator<SOAPElement>)
@@ -114,6 +116,11 @@ public class Marshaller {
             for (Field f : fields) {
                 Class<?> fType = f.getType();
                 anno = f.getAnnotation(Element.class);
+                if (!"".equals(anno.ns())) {
+                    ns = anno.ns();
+                }
+
+
                 if (anno == null) continue;
                 String name = "".equals(anno.name()) ?
                         f.getName() : anno.name();
