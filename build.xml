@@ -7,6 +7,8 @@
   <property name="test.dir" value="test"/>
   <property name="java.test.dir" value="${test.dir}/java"/>
   <property name="dist.file" value="zmtray.jar"/>
+  <property name="dist.resource.file" value="zmtray-resources.jar"/>
+  <property name="resources.dir" value="resources"/>
   <path id="class.path">
     <fileset dir="${lib.dir}" includes="*.jar"/>
     <!--
@@ -55,14 +57,23 @@
       	<include name="**/*.class"/>
         <exclude name="test/**"/>
       </fileset>
-      <fileset dir="${java.src.dir}">
-      	<include name="**/*.png"/>
-      </fileset>
       <manifest>
         <attribute name="Main-Class"
                   value="com.zimbra.app.systray.ZimbraTray"/>
-        <attribute name="Class-Path" value=""/>
+        <attribute name="Class-Path" value="zmtray-resources.jar"/>
       </manifest>
+    </jar>
+    <fileset dir="${resources.dir}/user-icons"
+        includes="*.png" id="user.icons.set"/>
+    <property name="user.icons" refid="user.icons.set"/>
+    <echo file="${build.dir}/user-icons.lst" message="${user.icons}"/>
+    <jar jarfile="${build.dir}/${dist.resource.file}">
+      <zipfileset dir="${resources.dir}"
+             includes="**/*.png,**/*.properties"
+               prefix="com/zimbra/app/systray/resources"/>
+      <zipfileset dir="${build.dir}"
+             includes="*.lst"
+               prefix="com/zimbra/app/systray/resources"/>
     </jar>
   </target>
 </project>
