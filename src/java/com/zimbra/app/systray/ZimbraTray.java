@@ -8,15 +8,17 @@ import java.awt.PopupMenu;
 import java.awt.MenuItem;
 
 import javax.swing.ImageIcon;
+import javax.swing.UIManager;
 
 public class ZimbraTray implements Runnable {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         EventQueue.invokeLater(new ZimbraTray());
     }
 
     public void run() {
         ImageIcon icon = new ImageIcon(
-                getClass().getResource("resources/zimbra_icon.png"));
+                getClass().getResource("resources/icons/email.png"));
         SystemTray tray = SystemTray.getSystemTray();
         PopupMenu menu = new PopupMenu();
         MenuItem item = new MenuItem("Test Menu Item");
