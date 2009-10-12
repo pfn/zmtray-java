@@ -3,7 +3,6 @@ package com.zimbra.app.soap.messages;
 import java.util.ArrayList;
 
 import com.zimbra.app.soap.Element;
-import com.zimbra.app.soap.Type;
 
 @Element(ns="urn:zimbra")
 public class BatchResponse {

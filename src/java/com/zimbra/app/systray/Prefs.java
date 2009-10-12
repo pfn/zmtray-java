@@ -1,9 +1,8 @@
 package com.zimbra.app.systray;
 
-import java.util.prefs.Preferences;
-import java.util.prefs.BackingStoreException;
 import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -13,7 +12,8 @@ import javax.crypto.spec.SecretKeySpec;
 public class Prefs {
 
     private final static String SYMMETRIC_ALGORITHM = "AES";
-    private final static String SECRET_KEY = "secretKey";
+    private final static String SECRET_KEY = "secret";
+    private final static String PORT_KEY = "localPort";
     private final static Prefs INSTANCE;
     private final SecretKey key;
     private final Cipher cipher;
@@ -53,22 +53,23 @@ public class Prefs {
         }
     }
 
-    public String getPassword(String account) {
+    public Account getAccount(String name) {
         try {
-            cipher.init(Cipher.DECRYPT_MODE, key);
+            if (prefs.nodeExists(name)) {
+                return new Account(prefs.node(name), cipher, key);
+            }
         }
-        catch (InvalidKeyException e) {
+        catch (BackingStoreException e) {
             throw new IllegalStateException(e);
         }
         return null;
     }
-
-    public void setPassword(String account, String password) {
-        try {
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-        }
-        catch (InvalidKeyException e) {
-            throw new IllegalStateException(e);
-        }
+    
+    public int getPort() {
+        return prefs.getInt(PORT_KEY, -1);
+    }
+    
+    public void setPort(int port) {
+        prefs.putInt(PORT_KEY, port);
     }
 }

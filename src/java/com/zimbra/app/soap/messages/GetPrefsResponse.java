@@ -1,7 +1,6 @@
 package com.zimbra.app.soap.messages;
 
 import com.zimbra.app.soap.Element;
-import com.zimbra.app.soap.Type;
 
 import java.util.ArrayList;
 

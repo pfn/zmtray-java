@@ -97,8 +97,7 @@ public class Test {
         Marshaller.marshal(m.getSOAPBody(), inforeq);
 
         m = SoapInterface.call(m, u);
-        GetInfoResponse inforesp = Marshaller.unmarshal(
-                GetInfoResponse.class, m);
+        Marshaller.unmarshal(GetInfoResponse.class, m);
 
         ///////////////////////////////////////////////////////////////////////
 
@@ -111,8 +110,7 @@ public class Test {
 
         m = SoapInterface.call(m, u);
 
-        GetFolderResponse folderresp = Marshaller.unmarshal(
-                GetFolderResponse.class, m);
+        Marshaller.unmarshal(GetFolderResponse.class, m);
 
         ///////////////////////////////////////////////////////////////////////
 
