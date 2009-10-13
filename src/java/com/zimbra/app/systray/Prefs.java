@@ -1,6 +1,8 @@
 package com.zimbra.app.systray;
 
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -12,8 +14,10 @@ import javax.crypto.spec.SecretKeySpec;
 public class Prefs {
 
     private final static String SYMMETRIC_ALGORITHM = "AES";
+    
     private final static String SECRET_KEY = "secret";
     private final static String PORT_KEY = "localPort";
+    private final static String IPC_KEY = "ipckey";
     private final static Prefs INSTANCE;
     private final SecretKey key;
     private final Cipher cipher;
@@ -44,9 +48,9 @@ public class Prefs {
 
     public static Prefs getPrefs() { return INSTANCE; }
 
-    public String[] listAccounts() {
+    public List<String> getAccountNames() {
         try {
-            return prefs.childrenNames();
+            return Arrays.asList(prefs.childrenNames());
         }
         catch (BackingStoreException e) {
             throw new IllegalStateException(e);
@@ -71,5 +75,13 @@ public class Prefs {
     
     public void setPort(int port) {
         prefs.putInt(PORT_KEY, port);
+    }
+    
+    public String getIPCKey() {
+        return prefs.get(IPC_KEY, null);
+    }
+    
+    public void setIPCKey(String key) {
+        prefs.put(IPC_KEY, key);
     }
 }
