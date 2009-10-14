@@ -38,15 +38,14 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             // show configuration/add accounts dialog
             NewAccountForm form = new NewAccountForm();
             form.show();
-        } else {
-            // perform logins and start polling
-            for (String name : names) {
-                Account account = prefs.getAccount(name);
-                AccountHandler handler = new AccountHandler(account, this);
-                Thread t = new Thread(handler,
-                        "Account Handler: " + account.getAccountName());
-                t.start();
-            }
+        }
+        // perform logins and start polling
+        for (String name : names) {
+            Account account = prefs.getAccount(name);
+            AccountHandler handler = new AccountHandler(account, this);
+            Thread t = new Thread(handler,
+                    "Account Handler: " + account.getAccountName());
+            t.start();
         }
     }
     

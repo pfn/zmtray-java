@@ -18,6 +18,7 @@ public class Account {
     private final SecretKey key;
     private final Preferences prefs;
 
+    private final static String ENABLED_KEY = "enabled";
     private final static String SERVER_KEY  = "server";
     private final static String SECURE_KEY  = "ssl";
     private final static String CERT_KEY    = "certificate";
@@ -158,5 +159,13 @@ public class Account {
     
     public void setSoundName(String name) {
     	prefs.put(SOUND_KEY, name);
+    }
+    
+    public boolean isEnabled() {
+        return prefs.getBoolean(ENABLED_KEY, false);
+    }
+    
+    public void setEnabled(boolean e) {
+        prefs.putBoolean(ENABLED_KEY, e);
     }
 }

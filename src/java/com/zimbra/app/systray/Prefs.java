@@ -15,9 +15,10 @@ public class Prefs {
 
     private final static String SYMMETRIC_ALGORITHM = "AES";
     
-    private final static String SECRET_KEY = "secret";
-    private final static String PORT_KEY = "localPort";
-    private final static String IPC_KEY = "ipckey";
+    private final static String ACCOUNTS_KEY = "accounts";
+    private final static String SECRET_KEY   = "secret";
+    private final static String PORT_KEY     = "localPort";
+    private final static String IPC_KEY      = "ipckey";
     private final static Prefs INSTANCE;
     private final SecretKey key;
     private final Cipher cipher;
@@ -57,10 +58,15 @@ public class Prefs {
         }
     }
 
+    public Account createAccount(String name) {
+        return new Account(prefs.node(ACCOUNTS_KEY).node(name), cipher, key);
+    }
+    
     public Account getAccount(String name) {
+        Preferences accounts = prefs.node(ACCOUNTS_KEY);
         try {
-            if (prefs.nodeExists(name)) {
-                return new Account(prefs.node(name), cipher, key);
+            if (accounts.nodeExists(name)) {
+                return new Account(accounts.node(name), cipher, key);
             }
         }
         catch (BackingStoreException e) {
