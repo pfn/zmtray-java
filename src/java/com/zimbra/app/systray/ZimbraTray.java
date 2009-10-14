@@ -36,6 +36,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
         if (names.size() == 0) {
             // show configuration/add accounts dialog
+            NewAccountForm form = new NewAccountForm();
+            form.show();
         } else {
             // perform logins and start polling
             for (String name : names) {
