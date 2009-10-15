@@ -9,6 +9,7 @@ import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.util.List;
 
+import javax.swing.JFrame;
 import javax.swing.ImageIcon;
 import javax.swing.UIManager;
 
@@ -18,6 +19,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean hasSystemTray = false;
     
     private TrayIcon trayicon;
+
+    public final JFrame HIDDEN_PARENT;
     
     public static void main(String[] args) throws Exception {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -26,6 +29,10 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     
     public ZimbraTray() {
         checkIfRunning();
+
+        ImageIcon icon = (ImageIcon) getIcon("emailIcon");
+        HIDDEN_PARENT = new JFrame("zmtray hidden parent frame");
+        HIDDEN_PARENT.setIconImage(icon.getImage());
     }
 
     public void run() {
@@ -36,8 +43,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
         if (names.size() == 0) {
             // show configuration/add accounts dialog
-            NewAccountForm form = new NewAccountForm();
+            NewAccountForm form = new NewAccountForm(this);
             form.show();
+            names = prefs.getAccountNames();
         }
         // perform logins and start polling
         for (String name : names) {
