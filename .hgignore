@@ -3,3 +3,8 @@
 ^test/test.properties$
 ^.classpath$
 ^.project$
+^resources/app$
+^resources/com$
+^resources/resources$
+^resources/systray$
+^resources/zimbra$

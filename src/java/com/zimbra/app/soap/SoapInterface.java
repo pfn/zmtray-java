@@ -11,8 +11,10 @@ import javax.xml.soap.SOAPMessage;
 import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPException;
 
+import com.zimbra.app.soap.messages.ContextHeader;
+
 public class SoapInterface {
-    private final static boolean DEBUG = false;
+    private final static boolean DEBUG = true;
     private final static MessageFactory factory;
     static {
         try {
@@ -23,11 +25,11 @@ public class SoapInterface {
             throw new IllegalStateException(e);
         }
     }
-    public static SOAPMessage newMessage() throws SOAPException {
+    static SOAPMessage newMessage() throws SOAPException {
         return factory.createMessage();
     }
 
-    public static SOAPMessage call(SOAPMessage r, URL u)
+    static SOAPMessage call(SOAPMessage r, URL u)
     throws IOException, SOAPException {
         HttpURLConnection c = (HttpURLConnection) u.openConnection();
         c.setDoOutput(true);
@@ -60,5 +62,24 @@ public class SoapInterface {
             if (in != null)
                 in.close();
         }
+    }
+    
+    public static <T> T call(Object request, Class<T> resultType,
+            URL serviceTarget)
+    throws IOException, SOAPException, SOAPFaultException {
+        return call(request, resultType, serviceTarget, null);
+    }
+    public static <T> T call(Object request, Class<T> resultType,
+            URL serviceTarget, String authToken)
+    throws IOException, SOAPException, SOAPFaultException {
+        SOAPMessage m = SoapInterface.newMessage();
+        if (authToken != null) {
+            ContextHeader header = new ContextHeader();
+            header.authToken = authToken;
+            Marshaller.marshal(m.getSOAPHeader(), header);
+        }
+        Marshaller.marshal(m.getSOAPBody(), request);
+        m = call(m, serviceTarget);
+        return Marshaller.unmarshal(resultType, m);
     }
 }

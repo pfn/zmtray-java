@@ -1,18 +1,26 @@
 package com.zimbra.app.systray;
 
 import java.awt.AWTException;
+import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.Font;
 import java.awt.Image;
 import java.awt.MenuItem;
+import java.awt.Point;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
+import java.beans.PropertyEditorManager;
 import java.util.List;
 
-import javax.swing.JFrame;
 import javax.swing.ImageIcon;
+import javax.swing.JFrame;
 import javax.swing.UIManager;
 
+import com.hanhuy.common.ui.DimensionEditor;
+import com.hanhuy.common.ui.FontEditor;
+import com.hanhuy.common.ui.IntEditor;
+import com.hanhuy.common.ui.PointEditor;
 import com.hanhuy.common.ui.ResourceBundleForm;
 
 public class ZimbraTray extends ResourceBundleForm implements Runnable {
@@ -23,6 +31,11 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     public final JFrame HIDDEN_PARENT;
     
     public static void main(String[] args) throws Exception {
+        PropertyEditorManager.registerEditor(Font.class, FontEditor.class);
+        PropertyEditorManager.registerEditor(Dimension.class,
+                DimensionEditor.class);
+        PropertyEditorManager.registerEditor(Point.class, PointEditor.class);
+        PropertyEditorManager.registerEditor(int.class, IntEditor.class);
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         EventQueue.invokeLater(new ZimbraTray());
     }
@@ -46,6 +59,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             NewAccountForm form = new NewAccountForm(this);
             form.show();
             names = prefs.getAccountNames();
+System.exit(0);
         }
         // perform logins and start polling
         for (String name : names) {
@@ -80,9 +94,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         
         ImageIcon icon = (ImageIcon) getIcon("emailIcon");
         PopupMenu menu = new PopupMenu();
-        MenuItem item = new MenuItem(getString("webmailMenu"));
-        menu.add(item);
-        item = new MenuItem(getString("optionsMenu"));
+        MenuItem item = new MenuItem(getString("optionsMenu"));
         menu.add(item);
         menu.addSeparator();
         item = new MenuItem(getString("exitMenu"));

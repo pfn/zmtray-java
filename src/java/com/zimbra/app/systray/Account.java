@@ -19,6 +19,7 @@ public class Account {
     private final Preferences prefs;
 
     private final static String ENABLED_KEY = "enabled";
+    private final static String POLL_KEY    = "pollInterval";
     private final static String SERVER_KEY  = "server";
     private final static String SECURE_KEY  = "ssl";
     private final static String CERT_KEY    = "certificate";
@@ -28,6 +29,8 @@ public class Account {
     private final static String NAME_KEY    = "name";
     private final static String PASS_KEY    = "password";
     private final static String USER_KEY    = "login";
+    
+    public final static int DEFAULT_POLL_INTERVAL = 300;
 
     Account(Preferences prefs, Cipher cipher, SecretKey key) {
         this.prefs = prefs;
@@ -167,5 +170,16 @@ public class Account {
     
     public void setEnabled(boolean e) {
         prefs.putBoolean(ENABLED_KEY, e);
+    }
+    
+    /**
+     * @return polling interval in seconds
+     */
+    public int getPollInterval() {
+        return prefs.getInt(POLL_KEY, DEFAULT_POLL_INTERVAL);
+    }
+
+    public void setPollInterval(int interval) {
+        prefs.putInt(POLL_KEY, interval);
     }
 }
