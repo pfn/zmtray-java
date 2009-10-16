@@ -14,7 +14,7 @@ public class AuthRequest {
     @Element(name="account")
     public static class Account {
         @Element(type=Type.ATTRIBUTE)
-        public String by;
+        public String by = "name";
 
         @Element(type=Type.TEXT)
         public String name;

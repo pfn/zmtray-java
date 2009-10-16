@@ -4,8 +4,13 @@ import java.util.prefs.Preferences;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.UUID;
 import java.io.UnsupportedEncodingException;
 import java.io.ByteArrayInputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.GeneralSecurityException;
@@ -17,21 +22,24 @@ public class Account {
     private final Cipher cipher;
     private final SecretKey key;
     private final Preferences prefs;
-
-    private final static String ENABLED_KEY = "enabled";
-    private final static String POLL_KEY    = "pollInterval";
-    private final static String SERVER_KEY  = "server";
-    private final static String SECURE_KEY  = "ssl";
-    private final static String CERT_KEY    = "certificate";
-    private final static String FOLDERS_KEY = "folders";
-    private final static String ICON_KEY    = "icon";
-    private final static String SOUND_KEY   = "sound";
-    private final static String NAME_KEY    = "name";
-    private final static String PASS_KEY    = "password";
-    private final static String USER_KEY    = "login";
     
-    public final static int DEFAULT_POLL_INTERVAL = 300;
+    private final static String PREAUTH_URI =
+        "/service/preauth?isredirect=1&authtoken=";
+    public final static String SERVICE_URI = "/service/soap";
 
+    private final static String ENABLED_KEY   = "enabled";
+    private final static String SERVER_KEY    = "server";
+    private final static String SECURE_KEY    = "ssl";
+    private final static String CERT_KEY      = "certificate";
+    private final static String FOLDERS_KEY   = "folders";
+    private final static String CALENDARS_KEY = "calendars";
+    private final static String ICON_KEY      = "icon";
+    private final static String SOUND_KEY     = "sound";
+    //private final static String NAME_KEY    = "name";
+    private final static String PASS_KEY      = "password";
+    private final static String SALT_KEY      = "salt";
+    private final static String USER_KEY      = "login";
+    
     Account(Preferences prefs, Cipher cipher, SecretKey key) {
         this.prefs = prefs;
         this.cipher = cipher;
@@ -55,22 +63,39 @@ public class Account {
     }
 
     public String getAccountName() {
-        return prefs.get(NAME_KEY, null);
+        return prefs.name();
     }
 
     public void setAccountName(String name) {
-        prefs.put(NAME_KEY, name);
+        //prefs.put(NAME_KEY, name);
+        throw new UnsupportedOperationException("setAccountName");
     }
 
-    public List<String> getSubscribedFolderNames() {
-        String names = prefs.get(FOLDERS_KEY, null);
-        ArrayList<String> folderNames = new ArrayList<String>();
+    public List<String> getSubscribedMailFolders() {
+        return getSubscribedNames(FOLDERS_KEY);
+    }
+
+    public void setSubscribedMailFolders(List<String> names) {
+        setSubscribedNames(FOLDERS_KEY, names);
+    }
+    
+    public List<String> getSubscribedCalendarNames() {
+        return getSubscribedNames(CALENDARS_KEY);
+    }
+
+    public void setSubscribedCalendarNames(List<String> names) {
+        setSubscribedNames(CALENDARS_KEY, names);
+    }
+    
+    private List<String> getSubscribedNames(String key) {
+        String names = prefs.get(key, null);
+        ArrayList<String> nameList = new ArrayList<String>();
         if (names != null && !"".equals(names))
-            folderNames.addAll(Arrays.asList(names.split(",")));
-        return folderNames;
+            nameList.addAll(Arrays.asList(names.split(",")));
+        return nameList;
     }
 
-    public void setSubscribedFolderNames(List<String> names) {
+    private void setSubscribedNames(String key, List<String> names) {
         StringBuilder namebuf = new StringBuilder();
 
         for (String name : names) {
@@ -80,7 +105,7 @@ public class Account {
         namebuf.setLength(namebuf.length() - 1);
 
         if (namebuf.length() > 0)
-            prefs.put(FOLDERS_KEY, namebuf.toString());
+            prefs.put(key, namebuf.toString());
     }
 
     public void setLogin(String login) {
@@ -99,7 +124,17 @@ public class Account {
 
             cipher.init(Cipher.DECRYPT_MODE, key);
             pwbuf = cipher.doFinal(pwbuf);
-            return new String(pwbuf, "utf-8");
+            String salt = prefs.get(SALT_KEY, null);
+            if (salt == null)
+                throw new IllegalStateException("no salt");
+            
+            String saltpw = new String(pwbuf, "utf-8");
+            
+            if (!saltpw.startsWith(salt + ":")) {
+                throw new IllegalStateException("salt mismatch: "
+                        + saltpw + " expected: " + salt);
+            }
+            return saltpw.substring(saltpw.indexOf(":") + 1);
         }
         catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);
@@ -111,9 +146,14 @@ public class Account {
 
     public void setPassword(String password) {
         try {
+            String salt = prefs.get(SALT_KEY, null);
+            if (salt == null) {
+                salt = UUID.randomUUID().toString();
+                prefs.put(SALT_KEY, salt);
+            }
             cipher.init(Cipher.ENCRYPT_MODE, key);
 
-            byte[] pwbuf = password.getBytes("utf-8");
+            byte[] pwbuf = (salt + ":" + password).getBytes("utf-8");
             pwbuf = cipher.doFinal(pwbuf);
             prefs.putByteArray(PASS_KEY, pwbuf);
         }
@@ -172,14 +212,28 @@ public class Account {
         prefs.putBoolean(ENABLED_KEY, e);
     }
     
-    /**
-     * @return polling interval in seconds
-     */
-    public int getPollInterval() {
-        return prefs.getInt(POLL_KEY, DEFAULT_POLL_INTERVAL);
+    public URL getServiceURL() {
+        try {
+            return getServiceURL(getServer(), isSSL());
+        }
+        catch (MalformedURLException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
-
-    public void setPollInterval(int interval) {
-        prefs.putInt(POLL_KEY, interval);
+    
+    public static URL getServiceURL(String server, boolean isSSL)
+    throws MalformedURLException {
+        return new URL((isSSL ? "https" : " http") + "://" +
+                server + SERVICE_URI);
+        
+    }
+    
+    public URI getPreauthURI(String authToken) {
+        try {
+            return new URI((isSSL() ? "https" : "http") + "://"
+                    + getServer() + PREAUTH_URI + authToken);
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

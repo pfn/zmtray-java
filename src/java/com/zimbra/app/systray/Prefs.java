@@ -51,7 +51,7 @@ public class Prefs {
 
     public List<String> getAccountNames() {
         try {
-            return Arrays.asList(prefs.childrenNames());
+            return Arrays.asList(prefs.node(ACCOUNTS_KEY).childrenNames());
         }
         catch (BackingStoreException e) {
             throw new IllegalStateException(e);

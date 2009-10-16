@@ -41,6 +41,7 @@ public class SoapInterface {
             if (DEBUG) {
                 System.out.println("\nREQUEST:");
                 r.writeTo(System.out);
+                System.out.println();
             }
             r.writeTo(out);
             SOAPMessage response = null;
@@ -54,6 +55,7 @@ public class SoapInterface {
             if (DEBUG) {
                 System.out.println("\nRESPONSE:");
                 response.writeTo(System.out);
+                System.out.println();
             }
             return response;
         }

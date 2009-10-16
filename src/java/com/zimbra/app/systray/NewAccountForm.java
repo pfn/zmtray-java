@@ -6,7 +6,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
-import java.net.URL;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -25,9 +24,6 @@ import com.zimbra.app.soap.messages.AuthResponse;
 
 public class NewAccountForm extends ResourceBundleForm {
 
-    private final static String SERVICE_URI = "/service/soap";
-    
-    private ZimbraTray zt;
     private JDialog dialog;
 
     private JTextField     server = new JTextField();
@@ -44,9 +40,9 @@ public class NewAccountForm extends ResourceBundleForm {
     private String username;
     private String password;
     private boolean isSSL;
+    private boolean isAccountCreated;
 
     public NewAccountForm(ZimbraTray zt) {
-        this.zt = zt;
         dialog = new JDialog(zt.HIDDEN_PARENT, getString("title"), true);
         dialog.setAlwaysOnTop(true);
 
@@ -77,6 +73,7 @@ public class NewAccountForm extends ResourceBundleForm {
             }
         });
         test.addActionListener(new TestActionListener());
+        ok.addActionListener(new SaveActionListener());
 
         final boolean[] nameSet = new boolean[1];
 
@@ -108,6 +105,34 @@ public class NewAccountForm extends ResourceBundleForm {
         server.addKeyListener(nameSetterListener);
     }
     
+    public boolean isAccountCreated() {
+        return isAccountCreated;
+    }
+    
+    private class SaveActionListener implements ActionListener {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (!verifySettings())
+                return;
+            Account account = Prefs.getPrefs().getAccount(accountName);
+            if (account != null) {
+                JOptionPane.showMessageDialog(dialog,
+                        format("accountExistsError", accountName),
+                        getString("errorString"), JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            account = Prefs.getPrefs().createAccount(accountName);
+            account.setEnabled(true);
+            account.setLogin(username);
+            account.setPassword(password);
+            account.setServer(serverName);
+            account.setSSL(isSSL);
+            isAccountCreated = true;
+            dialog.setVisible(false);
+            dialog.dispose();
+        }
+    }
     private class TestActionListener implements ActionListener {
 
         @Override
@@ -118,7 +143,7 @@ public class NewAccountForm extends ResourceBundleForm {
                     getString("testingMessage"),
                     JOptionPane.INFORMATION_MESSAGE);
             pane.setOptions(new Object[] { "Cancel" });
-            final JDialog dlg = pane.createDialog(zt.HIDDEN_PARENT,
+            final JDialog dlg = pane.createDialog(dialog,
                     getString("testingTitle"));
             dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
             dlg.setAlwaysOnTop(true);
@@ -134,9 +159,8 @@ public class NewAccountForm extends ResourceBundleForm {
                     req.account.by = "name";
                     req.account.name = username;
                     try {
-                        URL u = new URL((isSSL ? "https" : " http") + "://" +
-                                serverName + SERVICE_URI);
-                        SoapInterface.call(req, AuthResponse.class, u);
+                        SoapInterface.call(req, AuthResponse.class,
+                                Account.getServiceURL(serverName, isSSL));
                     }
                     catch (IOException e) {
                         error[0] = getString("connectionError") + " " +
@@ -167,7 +191,7 @@ public class NewAccountForm extends ResourceBundleForm {
                     message = error[0];
                     type = JOptionPane.ERROR_MESSAGE;
                 }
-                JOptionPane.showMessageDialog(zt.HIDDEN_PARENT,
+                JOptionPane.showMessageDialog(dialog,
                         message, getString("connectionTestString"), type);
             }
         }
@@ -190,7 +214,7 @@ public class NewAccountForm extends ResourceBundleForm {
         if (password == null || password.trim().equals(""))
             error = getString("passwordEmptyError");
         if (error != null) {
-            JOptionPane.showMessageDialog(zt.HIDDEN_PARENT,
+            JOptionPane.showMessageDialog(dialog,
                     error, getString("errorString"), JOptionPane.ERROR_MESSAGE);
             return false;
         }

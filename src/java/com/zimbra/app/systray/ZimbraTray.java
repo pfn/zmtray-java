@@ -1,6 +1,7 @@
 package com.zimbra.app.systray;
 
 import java.awt.AWTException;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -10,11 +11,18 @@ import java.awt.Point;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.beans.PropertyEditorManager;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
 import com.hanhuy.common.ui.DimensionEditor;
@@ -27,8 +35,20 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean hasSystemTray = false;
     
     private TrayIcon trayicon;
-
+    private PopupMenu menu;
+    
+    private HashMap<String,MenuItem> accountMenuMap =
+            new HashMap<String,MenuItem>();
+    private HashMap<String,AccountHandler> accountHandlerMap =
+            new HashMap<String,AccountHandler>();
+    
+    private final static int THREAD_POOL_SIZE = 20;
+    
+    private ScheduledExecutorService executor =
+        Executors.newScheduledThreadPool(THREAD_POOL_SIZE);
     public final JFrame HIDDEN_PARENT;
+    
+    private final OpenClientAction openClientAction = new OpenClientAction();
     
     public static void main(String[] args) throws Exception {
         PropertyEditorManager.registerEditor(Font.class, FontEditor.class);
@@ -58,16 +78,17 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             // show configuration/add accounts dialog
             NewAccountForm form = new NewAccountForm(this);
             form.show();
+            if (!form.isAccountCreated())
+                System.exit(0);
             names = prefs.getAccountNames();
-System.exit(0);
         }
         // perform logins and start polling
         for (String name : names) {
             Account account = prefs.getAccount(name);
+            if (!account.isEnabled()) continue;
             AccountHandler handler = new AccountHandler(account, this);
-            Thread t = new Thread(handler,
-                    "Account Handler: " + account.getAccountName());
-            t.start();
+            accountHandlerMap.put(name, handler);
+            addAccountToTray(account);
         }
     }
     
@@ -92,13 +113,17 @@ System.exit(0);
         
         hasSystemTray = true;
         
-        ImageIcon icon = (ImageIcon) getIcon("emailIcon");
-        PopupMenu menu = new PopupMenu();
-        MenuItem item = new MenuItem(getString("optionsMenu"));
+        MenuItem item;
+        menu = new PopupMenu();
+        menu.addSeparator();
+        item = new MenuItem(getString("optionsMenu"));
         menu.add(item);
         menu.addSeparator();
         item = new MenuItem(getString("exitMenu"));
+        item.addActionListener(new ExitAction());
         menu.add(item);
+        
+        ImageIcon icon = (ImageIcon) getIcon("emailIcon");
         trayicon = new TrayIcon(icon.getImage(),
                 getString("defaultToolTip"), menu);
         trayicon.setImageAutoSize(true);
@@ -106,9 +131,25 @@ System.exit(0);
             tray.add(trayicon);
         }
         catch (AWTException e) {
-            e.printStackTrace();
+            throw new IllegalStateException(e);
         }
     }
+    
+    private void addAccountToTray(Account acct) {
+        if (!hasSystemTray)
+            return;
+        String name = acct.getAccountName();
+        MenuItem item = new MenuItem(name);
+        item.setActionCommand(name);
+        item.addActionListener(openClientAction);
+        menu.insert(item, 0);
+        accountMenuMap.put(name, item);
+    }
+    
+    //private void removeAccountFromTray(Account acct) {
+    //    if (!hasSystemTray)
+    //        return;
+    //}
     
     public void setTrayIcon(Image icon) {
         if (!hasSystemTray)
@@ -131,5 +172,44 @@ System.exit(0);
         if (!hasSystemTray)
             return;
         trayicon.displayMessage(title, text, TrayIcon.MessageType.ERROR);
+    }
+    
+    private static class ExitAction implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            System.exit(0);
+        }
+    }
+    
+    private class OpenClientAction implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            if (!Desktop.isDesktopSupported()) {
+                JOptionPane.showMessageDialog(HIDDEN_PARENT,
+                        "java.awt.Desktop is not supported",
+                        "Unable to open webclient",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            Desktop d = Desktop.getDesktop();
+            String name = e.getActionCommand();
+            AccountHandler h = accountHandlerMap.get(name);
+            Account acct = h.getAccount();
+            String authToken = h.getAuthToken();
+            if (authToken == null) {
+                JOptionPane.showMessageDialog(HIDDEN_PARENT,
+                        format("notLoggedIn", name), getString("errorString"),
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                d.browse(acct.getPreauthURI(authToken));
+            }
+            catch (IOException ex) {
+                throw new IllegalStateException(ex);
+            }
+        }
+    }
+    
+    ScheduledExecutorService getExecutor() {
+        return executor;
     }
 }
