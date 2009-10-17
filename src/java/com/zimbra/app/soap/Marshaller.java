@@ -60,11 +60,29 @@ public class Marshaller {
                                         f.getName() : anno.name(), "");
                         ce.addTextNode(value.toString());
                     }
-                } else if (type.isAssignableFrom(Collection.class)) {
-                    // TODO handle collection types,
+                } else if (Collection.class.isAssignableFrom(type)) {
                     //     child elements can either be TEXT or a class
                     // text is  <name>text1</name><name>text2</name>
                     // class is <name><data/></name><name><data2/></name>
+
+                    ParameterizedType t = (ParameterizedType)
+                                f.getGenericType();
+                    Class<?> oType = (Class)
+                            t.getActualTypeArguments()[0];
+                    Collection col = (Collection) value;
+                    for (Object obj : col) {
+                        if (oType == String.class) {
+                            SOAPElement ce = child.addChildElement(
+                                    "".equals(anno.name()) ?
+                                            f.getName() : anno.name(), "");
+                            ce.addTextNode(value.toString());
+                        } else if (Number.class.isAssignableFrom(oType) ||
+                            oType == Character.class) {
+                            throw new UnsupportedOperationException("" + oType);
+                        } else {
+                            marshal(child, obj);
+                        }
+                    }
                 } else {
                     marshal(child, value);
                 }

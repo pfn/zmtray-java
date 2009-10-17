@@ -51,6 +51,14 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private final OpenClientAction openClientAction = new OpenClientAction();
     
     public static void main(String[] args) throws Exception {
+        Thread.setDefaultUncaughtExceptionHandler(
+                new Thread.UncaughtExceptionHandler() {
+            public void uncaughtException(Thread thread, Throwable t) {
+                System.err.println(t.getClass().getName() + ": " +
+                        thread.getName());
+                t.printStackTrace();
+            }
+        });
         PropertyEditorManager.registerEditor(Font.class, FontEditor.class);
         PropertyEditorManager.registerEditor(Dimension.class,
                 DimensionEditor.class);

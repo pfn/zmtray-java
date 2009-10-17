@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledFuture;
 
 import javax.swing.JOptionPane;
 import javax.xml.soap.SOAPException;
@@ -24,6 +25,7 @@ import com.zimbra.app.soap.messages.GetInfoRequest;
 import com.zimbra.app.soap.messages.GetInfoResponse;
 import com.zimbra.app.soap.messages.GetPrefsRequest;
 import com.zimbra.app.soap.messages.GetPrefsResponse;
+import com.zimbra.app.soap.messages.SearchRequest;
 
 public class AccountHandler implements Runnable {
     private final ZimbraTray zmtray;
@@ -33,10 +35,13 @@ public class AccountHandler implements Runnable {
     private String serverUsername;
     private int pollInterval = -1;
     
-    private final static String DEFAULT_MAIL_FOLDER   = "Inbox";
-    private final static String DEFAULT_CALENDAR      = "Inbox";
-    private final static String MAIL_FOLDER_VIEW      = "message";
-    private final static String CALENDAR_FOLDER_VIEW  = "appointment";
+    private final static String DEFAULT_MAIL_FOLDER = "Inbox";
+    private final static String DEFAULT_CALENDAR    = "Calendar";
+    private final static String MAIL_FOLDER_VIEW    = "message";
+    private final static String CALENDAR_VIEW       = "appointment";
+
+    private boolean shutdown;
+    private ScheduledFuture<?> f;
     
     private HashMap<String,GetFolderResponse.Folder> nameFolderMap =
             new HashMap<String,GetFolderResponse.Folder>();
@@ -165,10 +170,9 @@ public class AccountHandler implements Runnable {
             parseFolderList(f.folders);
             if (MAIL_FOLDER_VIEW.equals(f.view)) {
                 mailFolders.add(f);
-            } else if (CALENDAR_FOLDER_VIEW.equals(f.view)) {
+            } else if (CALENDAR_VIEW.equals(f.view)) {
                 calendars.add(f);
             } else {
-                System.out.println("Skipping folder: " + f.name);
                 continue;
             }
             nameFolderMap.put(f.name, f);
@@ -176,24 +180,23 @@ public class AccountHandler implements Runnable {
     }
     
     private void requestAccountInfo() {
-        BatchRequest batchrequest = new BatchRequest();
-        batchrequest.folderRequest = new GetFolderRequest();
-        batchrequest.folderRequest.folder = new GetFolderRequest.Folder();
-        batchrequest.folderRequest.folder.text = "";
-        batchrequest.infoRequest = new GetInfoRequest();
-        batchrequest.infoRequest.sections = "idents";
-        batchrequest.prefsRequest = new GetPrefsRequest();
-        batchrequest.prefsRequest.pref = new GetPrefsRequest.Pref();
-        batchrequest.prefsRequest.pref.name = POLL_INTERVAL_PREF;
+        BatchRequest req = new BatchRequest();
+        req.folderRequest = new GetFolderRequest();
+        req.folderRequest.folder = new GetFolderRequest.Folder();
+        req.folderRequest.folder.text = "";
+        req.infoRequest = new GetInfoRequest();
+        req.infoRequest.sections = "idents";
+        req.prefsRequest = new GetPrefsRequest();
+        req.prefsRequest.pref = new GetPrefsRequest.Pref();
+        req.prefsRequest.pref.name = POLL_INTERVAL_PREF;
         try {
-            BatchResponse resp = SoapInterface.call(batchrequest,
-                    BatchResponse.class,
+            BatchResponse resp = SoapInterface.call(req, BatchResponse.class,
                     account.getServiceURL(), authToken);
             parsePollInterval(resp.prefsResponse);
             parseInfo(resp.infoResponse);
             parseFolderList(resp.folderResponse);
         } catch (SOAPFaultException e) {
-            showMessage(e.reason.text, "AuthRequest",
+            showMessage(e.reason.text, "BatchRequest",
                     JOptionPane.ERROR_MESSAGE);
         } catch (IOException e) {
             showMessage(e.getLocalizedMessage(), "IOException",
@@ -207,7 +210,49 @@ public class AccountHandler implements Runnable {
     }
     
     private void searchForNewItems() {
-        
+        BatchRequest req = new BatchRequest();
+        SearchRequest r1 = new SearchRequest();
+        r1.type = MAIL_FOLDER_VIEW;
+
+        StringBuilder folderQuery = new StringBuilder();
+        for (String name : account.getSubscribedMailFolders()) {
+            GetFolderResponse.Folder f = nameFolderMap.get(name);
+            folderQuery.append(Integer.toString(f.id));
+            folderQuery.append(" or ");
+        }
+        folderQuery.setLength(folderQuery.length() - 4);
+        r1.query = "is:unread inid:(" + folderQuery + ")";
+
+        SearchRequest r2 = new SearchRequest();
+        r2.type = CALENDAR_VIEW;
+        r2.calendarSearchStartTime = System.currentTimeMillis();
+        r2.calendarSearchEndTime   = System.currentTimeMillis() +
+                TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS);
+        folderQuery = new StringBuilder();
+        for (String name : account.getSubscribedCalendarNames()) {
+            GetFolderResponse.Folder f = nameFolderMap.get(name);
+            folderQuery.append(Integer.toString(f.id));
+            folderQuery.append(" or ");
+        }
+        folderQuery.setLength(folderQuery.length() - 4);
+        r2.query = "inid:(" + folderQuery + ")";
+        req.searchRequests.add(r1);
+        req.searchRequests.add(r2);
+        try {
+            BatchResponse resp = SoapInterface.call(req, BatchResponse.class,
+                    account.getServiceURL(), authToken);
+        } catch (SOAPFaultException e) {
+            showMessage(e.reason.text, "SearchRequest",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IOException e) {
+            showMessage(e.getLocalizedMessage(), "IOException",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        } catch (SOAPException e) {
+            showMessage(e.getLocalizedMessage(), "SOAPException",
+                    JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
     
     public void run() {
@@ -229,10 +274,11 @@ public class AccountHandler implements Runnable {
         
         searchForNewItems();
         
-        /*ScheduledFuture<?> f =*/ zmtray.getExecutor().schedule(this,
-                pollInterval == -1 ? ERROR_POLL_INTERVAL : pollInterval,
-                        TimeUnit.SECONDS);
-        //f.cancel(false);
+        if (!shutdown) {
+            f = zmtray.getExecutor().schedule(this,
+                    pollInterval == -1 ? ERROR_POLL_INTERVAL : pollInterval,
+                            TimeUnit.SECONDS);
+        }
     }
     
     public String getAuthToken() {
@@ -254,6 +300,13 @@ public class AccountHandler implements Runnable {
             });
         } catch (InterruptedException e) { // ignore
         } catch (InvocationTargetException e) { // ignore
+        }
+    }
+
+    public void shutdown() {
+        shutdown = true;
+        if (!f.isDone()) {
+            f.cancel(false);
         }
     }
 }
