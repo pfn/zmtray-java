@@ -14,7 +14,7 @@ import javax.xml.soap.SOAPException;
 import com.zimbra.app.soap.messages.ContextHeader;
 
 public class SoapInterface {
-    private final static boolean DEBUG = true;
+    private final static boolean DEBUG = false;
     private final static MessageFactory factory;
     static {
         try {

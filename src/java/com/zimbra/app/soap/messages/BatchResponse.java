@@ -8,7 +8,7 @@ import com.zimbra.app.soap.Element;
 public class BatchResponse {
 
     @Element(name="SearchResponse", ns="urn:zimbraMail")
-    public ArrayList<SearchResponse> searchResponse =
+    public ArrayList<SearchResponse> searchResponses =
             new ArrayList<SearchResponse>();
 
     @Element(name="GetInfoResponse", ns="urn:zimbraAccount")

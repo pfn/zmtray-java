@@ -6,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
@@ -26,6 +27,7 @@ import com.zimbra.app.soap.messages.GetInfoResponse;
 import com.zimbra.app.soap.messages.GetPrefsRequest;
 import com.zimbra.app.soap.messages.GetPrefsResponse;
 import com.zimbra.app.soap.messages.SearchRequest;
+import com.zimbra.app.soap.messages.SearchResponse;
 
 public class AccountHandler implements Runnable {
     private final ZimbraTray zmtray;
@@ -43,6 +45,8 @@ public class AccountHandler implements Runnable {
     private boolean shutdown;
     private ScheduledFuture<?> f;
     
+    private HashSet<Integer> seenMailMessages = new HashSet<Integer>();
+    private HashSet<Integer> seenCalendarAppointments = new HashSet<Integer>();
     private HashMap<String,GetFolderResponse.Folder> nameFolderMap =
             new HashMap<String,GetFolderResponse.Folder>();
     private ArrayList<GetFolderResponse.Folder> mailFolders =
@@ -100,20 +104,11 @@ public class AccountHandler implements Runnable {
                 char unit = pref.value.charAt(pref.value.length() - 1);
                 TimeUnit tu = null;
                 switch (unit) {
-                case 'h':
-                    tu = TimeUnit.HOURS;
-                    break;
-                case 'm':
-                    tu = TimeUnit.MINUTES;
-                    break;
-                case 's':
-                    tu = TimeUnit.SECONDS;
-                    break;
-                case 'd':
-                    tu = TimeUnit.DAYS;
-                    break;
-                default:
-                    throw new IllegalArgumentException(pref.value);
+                case 'h': tu = TimeUnit.HOURS;   break;
+                case 'm': tu = TimeUnit.MINUTES; break;
+                case 's': tu = TimeUnit.SECONDS; break;
+                case 'd': tu = TimeUnit.DAYS;    break;
+                default: throw new IllegalArgumentException(pref.value);
                 }
                 
                 int interval = Integer.parseInt(pref.value.substring(0,
@@ -241,6 +236,32 @@ public class AccountHandler implements Runnable {
         try {
             BatchResponse resp = SoapInterface.call(req, BatchResponse.class,
                     account.getServiceURL(), authToken);
+            for (SearchResponse r : resp.searchResponses) {
+                if (r.messages.size() > 0) {
+                    HashSet<Integer> foundMessages = new HashSet<Integer>();
+                    for (SearchResponse.Message m : r.messages) {
+                        foundMessages.add(m.id);
+                        if (seenMailMessages.contains(m.id))
+                            continue;
+                        System.out.println("NEW MESSAGE:");
+                        System.out.println("From: " + m.sender.fullName
+                                + " <" + m.sender.emailAddress + ">");
+                        System.out.println("Subject: " + m.subject);
+                        System.out.println(m.fragment);
+                        System.out.println();
+                        seenMailMessages.add(m.id);
+                    }
+                    // prevent from growing unbounded
+                    //seenMailMessages.retainAll(foundMessages);
+                } else if (r.appointments.size() > 0) {
+                    HashSet<Integer> foundAppointments = new HashSet<Integer>();
+                    for (SearchResponse.Appointment a : r.appointments) {
+                        foundAppointments.add(a.id);
+                        if (seenCalendarAppointments.contains(a.id))
+                            continue;
+                    }
+                }
+            }
         } catch (SOAPFaultException e) {
             showMessage(e.reason.text, "SearchRequest",
                     JOptionPane.ERROR_MESSAGE);
@@ -272,6 +293,7 @@ public class AccountHandler implements Runnable {
                     "At least one calendar and mail folder must be selected");
         }
         
+System.out.println("searching for new items");
         searchForNewItems();
         
         if (!shutdown) {

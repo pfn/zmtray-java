@@ -15,6 +15,7 @@ import javax.xml.soap.SOAPException;
 
 public class Marshaller {
 
+    @SuppressWarnings("unchecked")
     public static void marshal(SOAPElement parent, Object o)
     throws SOAPException {
         if (o == null) return;
@@ -61,10 +62,6 @@ public class Marshaller {
                         ce.addTextNode(value.toString());
                     }
                 } else if (Collection.class.isAssignableFrom(type)) {
-                    //     child elements can either be TEXT or a class
-                    // text is  <name>text1</name><name>text2</name>
-                    // class is <name><data/></name><name><data2/></name>
-
                     ParameterizedType t = (ParameterizedType)
                                 f.getGenericType();
                     Class<?> oType = (Class)
