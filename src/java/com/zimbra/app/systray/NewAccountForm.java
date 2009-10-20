@@ -7,6 +7,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 
+import javax.net.ssl.SSLHandshakeException;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
@@ -167,6 +168,10 @@ public class NewAccountForm extends ResourceBundleForm {
                     try {
                         SoapInterface.call(req, AuthResponse.class,
                                 Account.getServiceURL(serverName, isSSL));
+                    }
+                    catch (SSLHandshakeException e) {
+                        error[0] = getString("sslConnectionError") + " " +
+                                e.getLocalizedMessage();
                     }
                     catch (IOException e) {
                         error[0] = getString("connectionError") + " " +

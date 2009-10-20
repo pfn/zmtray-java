@@ -16,6 +16,7 @@ import com.zimbra.app.soap.messages.ContextHeader;
 public class SoapInterface {
     private final static boolean DEBUG = false;
     private final static MessageFactory factory;
+    private final static ThreadLocal<URL> currentURL = new ThreadLocal<URL>();
     static {
         try {
             factory = MessageFactory.newInstance(
@@ -74,14 +75,24 @@ public class SoapInterface {
     public static <T> T call(Object request, Class<T> resultType,
             URL serviceTarget, String authToken)
     throws IOException, SOAPException, SOAPFaultException {
-        SOAPMessage m = SoapInterface.newMessage();
-        if (authToken != null) {
-            ContextHeader header = new ContextHeader();
-            header.authToken = authToken;
-            Marshaller.marshal(m.getSOAPHeader(), header);
+        currentURL.set(serviceTarget);
+        try {
+            SOAPMessage m = SoapInterface.newMessage();
+            if (authToken != null) {
+                ContextHeader header = new ContextHeader();
+                header.authToken = authToken;
+                Marshaller.marshal(m.getSOAPHeader(), header);
+            }
+            Marshaller.marshal(m.getSOAPBody(), request);
+            m = call(m, serviceTarget);
+            return Marshaller.unmarshal(resultType, m);
         }
-        Marshaller.marshal(m.getSOAPBody(), request);
-        m = call(m, serviceTarget);
-        return Marshaller.unmarshal(resultType, m);
+        finally {
+            currentURL.set(null);
+        }
+    }
+    
+    public static URL getCurrentServiceTarget() {
+        return currentURL.get();
     }
 }

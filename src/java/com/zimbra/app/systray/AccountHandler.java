@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledFuture;
 
+import javax.net.ssl.SSLHandshakeException;
 import javax.swing.JOptionPane;
 import javax.xml.soap.SOAPException;
 
@@ -84,6 +85,9 @@ public class AccountHandler implements Runnable {
             showMessage(e.reason.text, "AuthRequest",
                     JOptionPane.ERROR_MESSAGE);
         }
+        catch (SSLHandshakeException e) {
+            e.printStackTrace();
+        }
         catch (IOException e) {
             showMessage(e.getLocalizedMessage(), "IOException",
                     JOptionPane.ERROR_MESSAGE);
@@ -92,7 +96,6 @@ public class AccountHandler implements Runnable {
         catch (SOAPException e) {
             showMessage(e.getLocalizedMessage(), "SOAPException",
                     JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
         }
             
         
