@@ -172,7 +172,8 @@ public class Marshaller {
                     if (!children.hasNext()) {
                         if (!anno.optional())
                             throw new IllegalArgumentException("missing: " +
-                                    name + ": " + e);
+                                    name + ": " +
+                                    e.getElementName().getLocalName());
                         continue;
                     }
                     if (fType.isPrimitive()) {

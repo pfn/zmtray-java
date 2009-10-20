@@ -19,10 +19,10 @@ public class SearchResponse {
         @Element(type=Type.ATTRIBUTE, optional=false)
         public int id;
 
-        @Element(name="fr", type=Type.TEXT, optional=false)
+        @Element(name="fr", type=Type.TEXT)
         public String fragment;
 
-        @Element(name="su", type=Type.TEXT, optional=false)
+        @Element(name="su", type=Type.TEXT)
         public String subject;
 
 

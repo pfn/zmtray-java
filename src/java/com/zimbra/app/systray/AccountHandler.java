@@ -243,7 +243,6 @@ public class AccountHandler implements Runnable {
                         foundMessages.add(m.id);
                         if (seenMailMessages.contains(m.id))
                             continue;
-                        System.out.println("NEW MESSAGE:");
                         System.out.println("From: " + m.sender.fullName
                                 + " <" + m.sender.emailAddress + ">");
                         System.out.println("Subject: " + m.subject);
@@ -277,6 +276,27 @@ public class AccountHandler implements Runnable {
     }
     
     public void run() {
+        try {
+            _run();
+        }
+        catch (Error e) {
+            e.printStackTrace();
+            throw e;
+        }
+        catch (RuntimeException e) {
+            e.printStackTrace();
+            throw e;
+        }
+        finally {
+            if (!shutdown) {
+                f = zmtray.getExecutor().schedule(this,
+                        pollInterval == -1 ? ERROR_POLL_INTERVAL : pollInterval,
+                                TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    private void _run() {
         if (authToken == null) {
             requestAuthToken();
             pollInterval = -1;
@@ -286,21 +306,18 @@ public class AccountHandler implements Runnable {
             System.out.println("Poll interval set to: " + pollInterval);
         }
         
-        while (account.getSubscribedCalendarNames().size() == 0 ||
-                account.getSubscribedMailFolders().size() == 0) {
-            // TODO implement folder selection
-            JOptionPane.showMessageDialog(zmtray.HIDDEN_PARENT,
-                    "At least one calendar and mail folder must be selected");
-        }
+        if (authToken != null) {
+            while (account.getSubscribedCalendarNames().size() == 0 ||
+                    account.getSubscribedMailFolders().size() == 0) {
+                // TODO implement folder selection
+                JOptionPane.showMessageDialog(zmtray.HIDDEN_PARENT,
+                        "At least one calendar and mail folder must be selected");
+            }
         
 System.out.println("searching for new items");
-        searchForNewItems();
-        
-        if (!shutdown) {
-            f = zmtray.getExecutor().schedule(this,
-                    pollInterval == -1 ? ERROR_POLL_INTERVAL : pollInterval,
-                            TimeUnit.SECONDS);
+            searchForNewItems();
         }
+        
     }
     
     public String getAuthToken() {

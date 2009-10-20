@@ -1,5 +1,7 @@
 package com.zimbra.app.systray;
 
+import com.zimbra.app.systray.ssl.TrustManager;
+
 import java.awt.AWTException;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -20,6 +22,8 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -59,13 +63,21 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                 t.printStackTrace();
             }
         });
+        ZimbraTray zt = new ZimbraTray();
+        initSSL(zt);
         PropertyEditorManager.registerEditor(Font.class, FontEditor.class);
         PropertyEditorManager.registerEditor(Dimension.class,
                 DimensionEditor.class);
         PropertyEditorManager.registerEditor(Point.class, PointEditor.class);
         PropertyEditorManager.registerEditor(int.class, IntEditor.class);
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        EventQueue.invokeLater(new ZimbraTray());
+        EventQueue.invokeLater(zt);
+    }
+
+    private static void initSSL(ZimbraTray zt) throws Exception {
+        SSLContext ctx = SSLContext.getInstance("SSL");
+        ctx.init(null, new TrustManager[] { new TrustManager(zt) }, null);
+        HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
     }
     
     public ZimbraTray() {
@@ -125,6 +137,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         menu = new PopupMenu();
         menu.addSeparator();
         item = new MenuItem(getString("optionsMenu"));
+        item.addActionListener(new OptionMenuAction());
         menu.add(item);
         menu.addSeparator();
         item = new MenuItem(getString("exitMenu"));
@@ -219,5 +232,21 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     
     ScheduledExecutorService getExecutor() {
         return executor;
+    }
+
+    private class OptionMenuAction implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            NewAccountForm form = new NewAccountForm(ZimbraTray.this);
+            form.show();
+            if (form.isAccountCreated()) {
+                Account account = form.getAccount();
+                String name = account.getAccountName();
+                if (!account.isEnabled()) return;
+                AccountHandler handler = new AccountHandler(
+                        account, ZimbraTray.this);
+                accountHandlerMap.put(name, handler);
+                addAccountToTray(account);
+            }
+        }
     }
 }

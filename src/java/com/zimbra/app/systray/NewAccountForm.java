@@ -108,6 +108,12 @@ public class NewAccountForm extends ResourceBundleForm {
     public boolean isAccountCreated() {
         return isAccountCreated;
     }
+
+    public Account getAccount() {
+        if (!isAccountCreated)
+            return null;
+        return Prefs.getPrefs().getAccount(accountName);
+    }
     
     private class SaveActionListener implements ActionListener {
 
@@ -165,13 +171,16 @@ public class NewAccountForm extends ResourceBundleForm {
                     catch (IOException e) {
                         error[0] = getString("connectionError") + " " +
                                 e.getLocalizedMessage();
+                        e.printStackTrace();
                     }
                     catch (SOAPFaultException e) {
                         error[0] = e.reason.text;
+                        e.printStackTrace();
                     }
                     catch (SOAPException e) {
                         error[0] = getString("soapResponseError") + " " +
                                 e.getLocalizedMessage();
+                        e.printStackTrace();
                     }
                     EventQueue.invokeLater(new Runnable() {
                         public void run() {
