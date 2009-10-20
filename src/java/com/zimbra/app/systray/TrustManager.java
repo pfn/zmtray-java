@@ -1,4 +1,4 @@
-package com.zimbra.app.systray.ssl;
+package com.zimbra.app.systray;
 
 import java.awt.Dialog;
 import java.awt.Window;
@@ -21,9 +21,6 @@ import javax.swing.JOptionPane;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
 import com.zimbra.app.soap.SoapInterface;
-import com.zimbra.app.systray.Account;
-import com.zimbra.app.systray.Prefs;
-import com.zimbra.app.systray.ZimbraTray;
 
 public class TrustManager extends ResourceBundleForm
 implements X509TrustManager {

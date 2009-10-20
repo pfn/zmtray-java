@@ -1,7 +1,5 @@
 package com.zimbra.app.systray;
 
-import com.zimbra.app.systray.ssl.TrustManager;
-
 import java.awt.AWTException;
 import java.awt.Desktop;
 import java.awt.Dimension;
