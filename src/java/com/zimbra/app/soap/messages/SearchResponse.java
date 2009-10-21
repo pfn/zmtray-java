@@ -47,6 +47,9 @@ public class SearchResponse {
         @Element(type=Type.ATTRIBUTE, optional=false)
         public int id;
 
+        @Element(type=Type.ATTRIBUTE, optional=false)
+        public String name;
+
         @Element
         public AlarmData alarmData;
 

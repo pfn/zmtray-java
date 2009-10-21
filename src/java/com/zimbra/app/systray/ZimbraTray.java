@@ -12,6 +12,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyEditorManager;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -222,6 +223,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             if (msgs != null)
                 msgs.clear();
             
+            updateTrayIcon();
             JMenuItem item = accountMenuMap.get(name);
             item.setText(name);
             
@@ -282,14 +284,18 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
      */
     public void updateUnreadMessages(Account account, List<Message> messages) {
         List<Message> msgs = newMessages.get(account);
+        if (messages == null)
+            messages = Collections.emptyList();
         if (msgs != null) {
             msgs.retainAll(messages);
-            JMenuItem item = accountMenuMap.get(account.getAccountName());
-            if (item != null) {
-                item.setText(format("accountMessageCount",
-                        account.getAccountName(), msgs.size()));
-            }
         }
+        String name = account.getAccountName();
+        JMenuItem item = accountMenuMap.get(name);
+        if (item != null) {
+            item.setText(msgs != null && msgs.size() > 0 ?
+                    format("accountMessageCount", name, msgs.size()) : name);
+        }
+        updateTrayIcon();
     }
 
     public void newMessagesFound(Account account, List<Message> messages) {
@@ -305,16 +311,29 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                     account.getAccountName(), msgs.size()));
         }
         showNewMessages();
+        updateTrayIcon();
     }
 
     public void appointmentsFound(Account account,
             List<Appointment> appointments) {
         // TODO parse appointment data and schedule alarms
+        for (Appointment a : appointments) {
+            System.out.println("Appointment: " + a.getName());
+        }
     }
     
     public void pollNow() {
         for (AccountHandler h : accountHandlerMap.values()) {
             h.pollNow();
         }
+    }
+
+    public void updateTrayIcon() {
+        boolean hasNew = false;
+        for (List<Message> messages : newMessages.values()) {
+            hasNew |= messages.size() > 0;
+        }
+
+        setTrayIcon(hasNew ? NEW_MAIL_ICON.getImage() : NORMAL_ICON.getImage());
     }
 }

@@ -38,6 +38,8 @@ public class AccountHandler implements Runnable {
     private String serverUsername;
     private int pollInterval = -1;
 
+    private volatile boolean isRunning;
+
     private final static ThreadLocal<Account> currentAccount =
             new ThreadLocal<Account>();
     
@@ -84,19 +86,22 @@ public class AccountHandler implements Runnable {
             authToken = resp.authToken;
         }
         catch (SOAPFaultException e) {
-            showMessage(e.reason.text, "AuthRequest",
+            showMessage(account.getAccountName() + " : " +
+                    e.reason.text, "AuthRequest",
                     JOptionPane.ERROR_MESSAGE);
         }
         catch (SSLHandshakeException e) {
             e.printStackTrace();
         }
         catch (IOException e) {
-            showMessage(e.getLocalizedMessage(), "IOException",
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "IOException",
                     JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
         catch (SOAPException e) {
-            showMessage(e.getLocalizedMessage(), "SOAPException",
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "SOAPException",
                     JOptionPane.ERROR_MESSAGE);
         }
             
@@ -199,16 +204,19 @@ public class AccountHandler implements Runnable {
             parseInfo(resp.infoResponse);
             parseFolderList(resp.folderResponse);
         } catch (SOAPFaultException e) {
-            showMessage(e.reason.text, "BatchRequest",
+            showMessage(account.getAccountName() + " : " + 
+                    e.reason.text, "BatchRequest",
                     JOptionPane.ERROR_MESSAGE);
         } catch (IOException e) {
-            showMessage(e.getLocalizedMessage(), "IOException",
-                    JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "IOException",
+                    JOptionPane.ERROR_MESSAGE);
         } catch (SOAPException e) {
-            showMessage(e.getLocalizedMessage(), "SOAPException",
-                    JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "SOAPException",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
     
@@ -228,7 +236,10 @@ public class AccountHandler implements Runnable {
 
         SearchRequest r2 = new SearchRequest();
         r2.type = CALENDAR_VIEW;
-        r2.calendarSearchStartTime = System.currentTimeMillis();
+        // also get undismissed reminders from the past few days
+        // (over the weekend possibly: 3 days)
+        r2.calendarSearchStartTime = System.currentTimeMillis() -
+                TimeUnit.MILLISECONDS.convert(3, TimeUnit.DAYS);
         r2.calendarSearchEndTime   = System.currentTimeMillis() +
                 TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS);
         folderQuery = new StringBuilder();
@@ -244,8 +255,10 @@ public class AccountHandler implements Runnable {
         try {
             BatchResponse resp = SoapInterface.call(req, BatchResponse.class,
                     account.getServiceURL(), authToken);
+            boolean hasMessages = false;
             for (SearchResponse r : resp.searchResponses) {
                 if (r.messages.size() > 0) {
+                    hasMessages = true;
                     HashSet<Integer> foundMessages = new HashSet<Integer>();
                     ArrayList<Message> newMessages = new ArrayList<Message>();
                     ArrayList<Message> unread = new ArrayList<Message>();
@@ -256,11 +269,6 @@ public class AccountHandler implements Runnable {
                         if (seenMailMessages.contains(m.id))
                             continue;
                         newMessages.add(message);
-                        System.out.println("From: " + m.sender.fullName
-                                + " <" + m.sender.emailAddress + ">");
-                        System.out.println("Subject: " + m.subject);
-                        System.out.println(m.fragment);
-                        System.out.println();
                         seenMailMessages.add(m.id);
                     }
                     // prevent from growing unbounded
@@ -278,21 +286,28 @@ public class AccountHandler implements Runnable {
                     zmtray.appointmentsFound(account, appointments);
                 }
             }
+            if (!hasMessages) {
+                zmtray.updateUnreadMessages(account, null);
+            }
         } catch (SOAPFaultException e) {
-            showMessage(e.reason.text, "SearchRequest",
+            showMessage(account.getAccountName() + " : " + 
+                    e.reason.text, "SearchRequest",
                     JOptionPane.ERROR_MESSAGE);
         } catch (IOException e) {
-            showMessage(e.getLocalizedMessage(), "IOException",
-                    JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "IOException",
+                    JOptionPane.ERROR_MESSAGE);
         } catch (SOAPException e) {
-            showMessage(e.getLocalizedMessage(), "SOAPException",
-                    JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "SOAPException",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
     
     public void run() {
+        isRunning = true;
         currentAccount.set(account);
         try {
             _run();
@@ -311,8 +326,9 @@ public class AccountHandler implements Runnable {
                         pollInterval == -1 ? ERROR_POLL_INTERVAL : pollInterval,
                                 TimeUnit.SECONDS);
             }
+            currentAccount.set(null);
+            isRunning = false;
         }
-        currentAccount.set(null);
     }
 
     private void _run() {
@@ -333,7 +349,7 @@ public class AccountHandler implements Runnable {
                         "At least one calendar and mail folder must be selected");
             }
         
-System.out.println("searching for new items");
+System.out.println(account.getAccountName() + ": searching for new items");
             searchForNewItems();
         }
         
@@ -369,6 +385,8 @@ System.out.println("searching for new items");
     }
     
     public void pollNow() {
+        if (isRunning)
+            return;
         if (f.getDelay(TimeUnit.SECONDS) > 1) {
             f.cancel(true);
             zmtray.getExecutor().submit(this);

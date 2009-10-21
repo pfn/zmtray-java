@@ -50,16 +50,21 @@ public class Marshaller {
                 }
                 if (String.class == type || type.isPrimitive()) {
                     if (anno.type() == Type.TEXT && "".equals(anno.name())) {
-                        child.addTextNode(value.toString());
+                        if (!anno.ignore().equals(value.toString()))
+                            child.addTextNode(value.toString());
                     } else if (anno.type() == Type.ATTRIBUTE) {
-                        child.setAttribute("".equals(anno.name()) ?
-                                f.getName() : anno.name(),
-                                value.toString());
+                        if (!anno.ignore().equals(value.toString())) {
+                            child.setAttribute("".equals(anno.name()) ?
+                                    f.getName() : anno.name(),
+                                    value.toString());
+                        }
                     } else {
-                        SOAPElement ce = child.addChildElement(
-                                "".equals(anno.name()) ?
-                                        f.getName() : anno.name(), "");
-                        ce.addTextNode(value.toString());
+                        if (!anno.ignore().equals(value.toString())) {
+                            SOAPElement ce = child.addChildElement(
+                                    "".equals(anno.name()) ?
+                                            f.getName() : anno.name(), "");
+                            ce.addTextNode(value.toString());
+                        }
                     }
                 } else if (Collection.class.isAssignableFrom(type)) {
                     ParameterizedType t = (ParameterizedType)

@@ -55,22 +55,22 @@ public class MessageView extends ResourceBundleForm {
         from.setText(name);
 
         if (m.getSubject() == null || "".equals(m.getSubject().trim())) {
-            setComponentsVisible("subjectText", false);
+            setComponentVisible("subjectText", false);
         } else {
-            setComponentsVisible("subjectText", true);
+            setComponentVisible("subjectText", true);
             subject.setText(m.getSubject());
         }
 
         if (m.getFragment() == null || "".equals(m.getFragment().trim())) {
-            setComponentsVisible("fragmentText", false);
+            setComponentVisible("fragmentText", false);
         } else {
-            setComponentsVisible("fragmentText", true);
+            setComponentVisible("fragmentText", true);
             fragment.setText("<html>" + m.getFragment());
             wrapLabel(fragment, getWidth(subject));
         }
     }
     
-    private void setComponentsVisible(String name, boolean b) {
+    private void setComponentVisible(String name, boolean b) {
         Component[] comps = component.getComponents();
         for (Component c : comps) {
             if (name.equals(c.getName())) {

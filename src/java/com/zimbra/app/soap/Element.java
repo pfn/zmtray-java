@@ -13,4 +13,5 @@ public @interface Element {
     Type   type()      default Type.ELEMENT;
     boolean optional() default true;
     boolean samenode() default false;
+    String  ignore()   default "";
 }

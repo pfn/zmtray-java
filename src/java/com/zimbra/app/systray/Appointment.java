@@ -14,12 +14,16 @@ public class Appointment {
         url = appt.organizer.url;
         emailAddress = appt.organizer.emailAddress;
         organizerName = appt.organizer.name;
+        name = appt.name;
     }
 
     private Account account;
     public Account getAccount() { return account; }
     private int id;
     public int getId() { return id; }
+
+    public String name;
+    public String getName() { return name; }
 
     private String fragment;
     public String getFragment() { return fragment; }

@@ -6,11 +6,11 @@ import com.zimbra.app.soap.Type;
 @Element(ns="urn:zimbraMail")
 public class SearchRequest {
 
-    @Element(name="calExpandInstStart", type=Type.ATTRIBUTE)
-    public long calendarSearchStartTime;
+    @Element(name="calExpandInstStart", type=Type.ATTRIBUTE, ignore="-1")
+    public long calendarSearchStartTime = -1;
 
-    @Element(name="calExpandInstEnd", type=Type.ATTRIBUTE)
-    public long calendarSearchEndTime;
+    @Element(name="calExpandInstEnd", type=Type.ATTRIBUTE, ignore="-1")
+    public long calendarSearchEndTime = -1;
 
     /**
      * appointment or message
