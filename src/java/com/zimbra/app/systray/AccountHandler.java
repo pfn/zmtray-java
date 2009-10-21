@@ -37,6 +37,9 @@ public class AccountHandler implements Runnable {
     private String serverVersionString;
     private String serverUsername;
     private int pollInterval = -1;
+
+    private final static ThreadLocal<Account> currentAccount =
+            new ThreadLocal<Account>();
     
     private final static String DEFAULT_MAIL_FOLDER = "Inbox";
     private final static String DEFAULT_CALENDAR    = "Calendar";
@@ -47,7 +50,6 @@ public class AccountHandler implements Runnable {
     private ScheduledFuture<?> f;
     
     private HashSet<Integer> seenMailMessages = new HashSet<Integer>();
-    private HashSet<Integer> seenCalendarAppointments = new HashSet<Integer>();
     private HashMap<String,GetFolderResponse.Folder> nameFolderMap =
             new HashMap<String,GetFolderResponse.Folder>();
     private ArrayList<GetFolderResponse.Folder> mailFolders =
@@ -242,10 +244,13 @@ public class AccountHandler implements Runnable {
             for (SearchResponse r : resp.searchResponses) {
                 if (r.messages.size() > 0) {
                     HashSet<Integer> foundMessages = new HashSet<Integer>();
+                    ArrayList<Message> newMessages = new ArrayList<Message>();
                     for (SearchResponse.Message m : r.messages) {
                         foundMessages.add(m.id);
                         if (seenMailMessages.contains(m.id))
                             continue;
+                        Message message = new Message(account, m);
+                        newMessages.add(message);
                         System.out.println("From: " + m.sender.fullName
                                 + " <" + m.sender.emailAddress + ">");
                         System.out.println("Subject: " + m.subject);
@@ -254,14 +259,15 @@ public class AccountHandler implements Runnable {
                         seenMailMessages.add(m.id);
                     }
                     // prevent from growing unbounded
-                    //seenMailMessages.retainAll(foundMessages);
+                    seenMailMessages.retainAll(foundMessages);
+                    zmtray.newMessagesFound(account, newMessages);
                 } else if (r.appointments.size() > 0) {
-                    HashSet<Integer> foundAppointments = new HashSet<Integer>();
+                    ArrayList<Appointment> appointments =
+                            new ArrayList<Appointment>();
                     for (SearchResponse.Appointment a : r.appointments) {
-                        foundAppointments.add(a.id);
-                        if (seenCalendarAppointments.contains(a.id))
-                            continue;
+                        appointments.add(new Appointment(account, a));
                     }
+                    zmtray.appointmentsFound(account, appointments);
                 }
             }
         } catch (SOAPFaultException e) {
@@ -279,6 +285,7 @@ public class AccountHandler implements Runnable {
     }
     
     public void run() {
+        currentAccount.set(account);
         try {
             _run();
         }
@@ -297,6 +304,7 @@ public class AccountHandler implements Runnable {
                                 TimeUnit.SECONDS);
             }
         }
+        currentAccount.set(null);
     }
 
     private void _run() {
@@ -350,5 +358,9 @@ System.out.println("searching for new items");
         if (!f.isDone()) {
             f.cancel(false);
         }
+    }
+
+    public Account getCurrentAccount() {
+        return currentAccount.get();
     }
 }

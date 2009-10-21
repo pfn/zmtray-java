@@ -175,6 +175,7 @@ implements X509TrustManager {
         }
         return null;
     }
+
     private static String toHexString(byte[] data) {
         StringBuilder sb = new StringBuilder();
         for (byte b : data) {
@@ -185,6 +186,7 @@ implements X509TrustManager {
         sb.setLength(sb.length() - 1);
         return sb.toString();
     }
+
     private static String hash(MessageDigest digest, X509Certificate cert) {
         try {
             return toHexString(digest.digest(cert.getEncoded()));

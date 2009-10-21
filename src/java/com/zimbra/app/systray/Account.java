@@ -236,4 +236,19 @@ public class Account {
             throw new IllegalStateException(e);
         }
     }
+
+    @Override
+    public int hashCode() {
+        return getAccountName().hashCode();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        boolean equals = false;
+        if (other instanceof Account) {
+            equals = ((Account) other).getAccountName().equals(
+                    getAccountName());
+        }
+        return equals;
+    }
 }

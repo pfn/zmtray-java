@@ -6,16 +6,14 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Image;
-import java.awt.MenuItem;
 import java.awt.Point;
-import java.awt.PopupMenu;
 import java.awt.SystemTray;
-import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyEditorManager;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,6 +24,8 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 
 import com.hanhuy.common.ui.DimensionEditor;
 import com.hanhuy.common.ui.FontEditor;
@@ -37,13 +37,16 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean hasSystemTray = false;
     
     private TrayIcon trayicon;
-    private PopupMenu menu;
+    private JPopupMenu menu;
     
-    private HashMap<String,MenuItem> accountMenuMap =
-            new HashMap<String,MenuItem>();
+    private HashMap<String,JMenuItem> accountMenuMap =
+            new HashMap<String,JMenuItem>();
     private HashMap<String,AccountHandler> accountHandlerMap =
             new HashMap<String,AccountHandler>();
     
+    private HashMap<Account,List<Message>> newMessages =
+            new HashMap<Account,List<Message>>();
+
     private final static int THREAD_POOL_SIZE = 20;
     
     private ScheduledExecutorService executor =
@@ -131,20 +134,20 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         
         hasSystemTray = true;
         
-        MenuItem item;
-        menu = new PopupMenu();
+        JMenuItem item;
+        menu = new JPopupMenu();
         menu.addSeparator();
-        item = new MenuItem(getString("optionsMenu"));
+        item = new JMenuItem(getString("optionsMenu"));
         item.addActionListener(new OptionMenuAction());
         menu.add(item);
         menu.addSeparator();
-        item = new MenuItem(getString("exitMenu"));
+        item = new JMenuItem(getString("exitMenu"));
         item.addActionListener(new ExitAction());
         menu.add(item);
         
         ImageIcon icon = (ImageIcon) getIcon("emailIcon");
-        trayicon = new TrayIcon(icon.getImage(),
-                getString("defaultToolTip"), menu);
+        trayicon = new TrayIcon(icon.getImage(), this);
+        trayicon.setJPopupMenu(menu);
         trayicon.setImageAutoSize(true);
         try {
             tray.add(trayicon);
@@ -158,7 +161,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         if (!hasSystemTray)
             return;
         String name = acct.getAccountName();
-        MenuItem item = new MenuItem(name);
+        JMenuItem item = new JMenuItem(name);
         item.setActionCommand(name);
         item.addActionListener(openClientAction);
         menu.insert(item, 0);
@@ -212,6 +215,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             String name = e.getActionCommand();
             AccountHandler h = accountHandlerMap.get(name);
             Account acct = h.getAccount();
+            List<Message> msgs = newMessages.get(acct);
+            if (msgs != null)
+                msgs.clear();
             String authToken = h.getAuthToken();
             if (authToken == null) {
                 JOptionPane.showMessageDialog(HIDDEN_PARENT,
@@ -228,7 +234,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         }
     }
     
-    ScheduledExecutorService getExecutor() {
+    public ScheduledExecutorService getExecutor() {
         return executor;
     }
 
@@ -246,5 +252,18 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                 addAccountToTray(account);
             }
         }
+    }
+
+    public void newMessagesFound(Account account, List<Message> messages) {
+        List<Message> msgs = newMessages.get(account);
+        if (msgs == null) {
+            msgs = new ArrayList<Message>();
+            newMessages.put(account, msgs);
+        }
+        msgs.addAll(messages);
+    }
+
+    public void appointmentsFound(Account account,
+            List<Appointment> appointments) {
     }
 }
