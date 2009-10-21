@@ -25,7 +25,7 @@ import com.zimbra.app.soap.SoapInterface;
 public class TrustManager extends ResourceBundleForm
 implements X509TrustManager {
     private final X509TrustManager defaultTrustManager;
-    private X509TrustManager ourTrustManager;
+    private X509TrustManager sessionTrustManager;
     private final ZimbraTray zmtray;
     private ArrayList<X509Certificate> sessionOnlyCerts =
             new ArrayList<X509Certificate>();
@@ -48,7 +48,6 @@ implements X509TrustManager {
             if (tm.length == 0)
                 throw new IllegalStateException("No trust managers found");
             defaultTrustManager = (X509TrustManager) tm[0];
-            initOurTrustManager();
         }
         catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
@@ -65,8 +64,12 @@ implements X509TrustManager {
         }
     }
 
-    private void initOurTrustManager()
+    private void initSessionTrustManager()
     throws NoSuchAlgorithmException, KeyStoreException {
+        
+        if (sessionOnlyCerts.size() == 0)
+            return;
+        
         KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         try {
             ks.load(null, null);
@@ -77,14 +80,6 @@ implements X509TrustManager {
         catch (CertificateException e) {
             throw new IllegalStateException(e);
         }
-        Prefs prefs = Prefs.getPrefs();
-        for (String name : prefs.getAccountNames()) {
-            Account acct = prefs.getAccount(name);
-            X509Certificate cert = acct.getCertificate();
-            if (cert != null) {
-                ks.setCertificateEntry(acct.getAccountName(), cert);
-            }
-        }
         for (X509Certificate cert : sessionOnlyCerts) {
             ks.setCertificateEntry(UUID.randomUUID().toString(), cert);
         }
@@ -94,8 +89,8 @@ implements X509TrustManager {
         tmf.init(ks);
         javax.net.ssl.TrustManager[] tm = tmf.getTrustManagers();
         if (tm.length == 0)
-            throw new IllegalStateException("No custom trust managers found");
-        ourTrustManager = (X509TrustManager) tm[0];
+            throw new IllegalStateException("Can't create trust manager");
+        sessionTrustManager = (X509TrustManager) tm[0];
     }
 
     public void checkClientTrusted(X509Certificate[] chain, String authType) {
@@ -114,15 +109,36 @@ implements X509TrustManager {
         catch (CertificateException e) {
             if (chain == null || chain.length == 0)
                 throw e;
+            tryCustomTrustManager(chain, authType, e);
+        }
+    }
+    
+    private void tryCustomTrustManager(X509Certificate[] chain, String authType,
+            CertificateException e)
+    throws CertificateException {
+        X509TrustManager accountTrustManager = null;
+        Account acct = AccountHandler.getCurrentAccount();
+        if (acct != null) {
+            System.out.println("Using trust manager from: " + acct.getAccountName());
+            accountTrustManager = acct.getTrustManager();
+        }
+        if (accountTrustManager != null) {
             try {
-                ourTrustManager.checkServerTrusted(chain, authType);
+                accountTrustManager.checkServerTrusted(chain, authType);
             }
             catch (CertificateException e2) {
+                // TODO prompt that the certificate has changed
+                throw e;
+            }
+        } else if (sessionTrustManager != null) {
+            try {
+                sessionTrustManager.checkServerTrusted(chain, authType);
+            }
+            catch (CertificateException e3) {
                 promptForCertificate(chain, e);
             }
-            catch (RuntimeException e2) {
-                promptForCertificate(chain, e);
-            }
+        } else {
+            promptForCertificate(chain, e);
         }
     }
 
@@ -130,39 +146,62 @@ implements X509TrustManager {
             X509Certificate[] chain, CertificateException e)
     throws CertificateException {
 
-        String[] options = {
-            getString("yesAlways"),
-            getString("sessionOnly"),
-            getString("never")
-        };
+        Account acct = AccountHandler.getCurrentAccount();
+
+        String[] options;
+        if (acct != null) {
+            options = new String[] {
+                    getString("yesAlways"),
+                    getString("sessionOnly"),
+                    getString("never")
+            };
+        } else {
+            options = new String[] {
+                    getString("yesOnce"),
+                    getString("never")
+            };
+        }
         URL target = SoapInterface.getCurrentServiceTarget();
         String dn = chain[0].getSubjectDN().getName();
         String caDN = chain[0].getIssuerX500Principal().getName();
-        int r = JOptionPane.showOptionDialog(findAlwaysOnTopDialog(),
-                format("certificateWarning",
+        String msg = format("certificateWarning",
                         target.getHost(), parseDN(dn, "cn"), parseDN(dn, "o"),
                         parseDN(caDN, "cn"), parseDN(caDN, "o"),
                         chain[0].getNotBefore(), chain[0].getNotAfter(),
-                        hash(sha1, chain[0]), hash(md5, chain[0])),
-                getString("unknownCertificateTitle"),
+                        hash(sha1, chain[0]), hash(md5, chain[0]));
+        if (acct == null)
+            msg = format("certificateWarningTest", msg);
+        int r = JOptionPane.showOptionDialog(findAlwaysOnTopDialog(),
+                msg, getString("unknownCertificateTitle"),
                 JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE,
-                null, options, options[2]);
-        switch (r) {
-        case 0:
-        case 1:
-            sessionOnlyCerts.add(chain[0]);
-            try {
-                initOurTrustManager();
+                null, options, options[acct == null ? 1 : 2]);
+        if (acct != null) {
+            switch (r) {
+            case 0:
+                AccountHandler.getCurrentAccount().setCertificate(chain[0]);
+                break;
+            case 1:
+                sessionOnlyCerts.add(chain[0]);
+                try {
+                    initSessionTrustManager();
+                }
+                catch (KeyStoreException ex) {
+                    throw new IllegalStateException(ex);
+                }
+                catch (NoSuchAlgorithmException ex) {
+                    throw new IllegalStateException(ex);
+                }
+                break;
+            default:
+                throw e;
             }
-            catch (KeyStoreException ex) {
-                throw new IllegalStateException(ex);
+        } else {
+            switch (r) {
+            case 0:
+                break;
+            default:
+                throw e;
             }
-            catch (NoSuchAlgorithmException ex) {
-                throw new IllegalStateException(ex);
-            }
-            break;
-        default:
-            throw e;
         }
     }
     

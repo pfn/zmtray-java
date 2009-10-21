@@ -108,16 +108,19 @@ public class AccountHandler implements Runnable {
             if (POLL_INTERVAL_PREF.equals(pref.name)) {
                 char unit = pref.value.charAt(pref.value.length() - 1);
                 TimeUnit tu = null;
+                boolean dontchop = false;
                 switch (unit) {
                 case 'h': tu = TimeUnit.HOURS;   break;
                 case 'm': tu = TimeUnit.MINUTES; break;
                 case 's': tu = TimeUnit.SECONDS; break;
                 case 'd': tu = TimeUnit.DAYS;    break;
-                default: throw new IllegalArgumentException(pref.value);
+                default:
+                    tu = TimeUnit.SECONDS;
+                    dontchop = true;
                 }
                 
-                int interval = Integer.parseInt(pref.value.substring(0,
-                        pref.value.length() - 1));
+                int interval = Integer.parseInt(dontchop ? pref.value :
+                        pref.value.substring(0, pref.value.length() - 1));
                 pollInterval = (int) TimeUnit.SECONDS.convert(interval, tu);
                 break;
             }
@@ -360,7 +363,7 @@ System.out.println("searching for new items");
         }
     }
 
-    public Account getCurrentAccount() {
+    public static Account getCurrentAccount() {
         return currentAccount.get();
     }
 }

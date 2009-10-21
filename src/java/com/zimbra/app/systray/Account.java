@@ -5,18 +5,25 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.UUID;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 public class Account {
     private final Cipher cipher;
@@ -35,10 +42,11 @@ public class Account {
     private final static String CALENDARS_KEY = "calendars";
     private final static String ICON_KEY      = "icon";
     private final static String SOUND_KEY     = "sound";
-    //private final static String NAME_KEY    = "name";
     private final static String PASS_KEY      = "password";
     private final static String SALT_KEY      = "salt";
     private final static String USER_KEY      = "login";
+    
+    private X509TrustManager accountTrustManager;
     
     Account(Preferences prefs, Cipher cipher, SecretKey key) {
         this.prefs = prefs;
@@ -180,6 +188,7 @@ public class Account {
     }
 
     public void setCertificate(X509Certificate cert) {
+        accountTrustManager = null;
         try {
             prefs.putByteArray(CERT_KEY, cert.getEncoded());
         }
@@ -225,7 +234,6 @@ public class Account {
     throws MalformedURLException {
         return new URL((isSSL ? "https" : " http") + "://" +
                 server + SERVICE_URI);
-        
     }
     
     public URI getPreauthURI(String authToken) {
@@ -237,6 +245,40 @@ public class Account {
         }
     }
 
+    public X509TrustManager getTrustManager() {
+        X509Certificate cert = getCertificate();
+        if (cert == null) return null;
+        if (accountTrustManager != null)
+            return accountTrustManager;
+        
+        try {
+            KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+            ks.load(null, null);
+            ks.setCertificateEntry(getAccountName(), cert);
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(
+                    TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(ks);
+            javax.net.ssl.TrustManager[] tm = tmf.getTrustManagers();
+            if (tm.length == 0)
+                throw new IllegalStateException("Can't create trust manager");
+            accountTrustManager = (X509TrustManager) tm[0];
+        }
+        catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        catch (CertificateException e) {
+            throw new IllegalStateException(e);
+        }
+        catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+        catch (KeyStoreException e) {
+            throw new IllegalStateException(e);
+        }
+
+        return accountTrustManager;
+    }
+    
     @Override
     public int hashCode() {
         return getAccountName().hashCode();

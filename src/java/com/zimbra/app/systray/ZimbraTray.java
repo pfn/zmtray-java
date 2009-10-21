@@ -254,6 +254,10 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         }
     }
 
+    public void showNewMessages() {
+        
+    }
+
     public void newMessagesFound(Account account, List<Message> messages) {
         List<Message> msgs = newMessages.get(account);
         if (msgs == null) {
@@ -261,6 +265,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             newMessages.put(account, msgs);
         }
         msgs.addAll(messages);
+        showNewMessages();
     }
 
     public void appointmentsFound(Account account,
