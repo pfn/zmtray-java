@@ -248,11 +248,13 @@ public class AccountHandler implements Runnable {
                 if (r.messages.size() > 0) {
                     HashSet<Integer> foundMessages = new HashSet<Integer>();
                     ArrayList<Message> newMessages = new ArrayList<Message>();
+                    ArrayList<Message> unread = new ArrayList<Message>();
                     for (SearchResponse.Message m : r.messages) {
+                        Message message = new Message(account, m);
+                        unread.add(message);
                         foundMessages.add(m.id);
                         if (seenMailMessages.contains(m.id))
                             continue;
-                        Message message = new Message(account, m);
                         newMessages.add(message);
                         System.out.println("From: " + m.sender.fullName
                                 + " <" + m.sender.emailAddress + ">");
@@ -263,7 +265,9 @@ public class AccountHandler implements Runnable {
                     }
                     // prevent from growing unbounded
                     seenMailMessages.retainAll(foundMessages);
-                    zmtray.newMessagesFound(account, newMessages);
+                    zmtray.updateUnreadMessages(account, unread);
+                    if (newMessages.size() > 0)
+                        zmtray.newMessagesFound(account, newMessages);
                 } else if (r.appointments.size() > 0) {
                     ArrayList<Appointment> appointments =
                             new ArrayList<Appointment>();

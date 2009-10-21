@@ -15,6 +15,8 @@ public class TrayIcon extends JXTrayIcon {
             public void mouseClicked(MouseEvent e) {
                 if (!popupTrigger && e.getClickCount() == 1)
                     zmtray.showNewMessages();
+                if (!popupTrigger && e.getClickCount() == 2)
+                    zmtray.pollNow();
             }
             @Override
             public void mouseReleased(MouseEvent e) {

@@ -3,7 +3,7 @@ package com.zimbra.app.systray;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.util.HashMap;
+import java.awt.FontMetrics;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -14,11 +14,14 @@ import com.hanhuy.common.ui.ResourceBundleForm;
 public class MessageView extends ResourceBundleForm {
     private JComponent component = new JPanel();
     
+    private int preferredWidth;
+    
     private JLabel from     = new JLabel();
     private JLabel subject  = new JLabel();
     private JLabel fragment = new JLabel();
     
     public MessageView() {
+        resetPreferredWidth();
         component.setLayout(createLayoutManager());
         layout();
     }
@@ -28,29 +31,21 @@ public class MessageView extends ResourceBundleForm {
     }
 
     private void layout() {
+        fragment.setVerticalAlignment(JLabel.NORTH);
         component.add(from,     "fromText");
         component.add(subject,  "subjectText");
         component.add(fragment, "fragmentText");
     }
 
+    public void resetPreferredWidth() {
+        preferredWidth = getInt("preferredWidth");
+    }
+    
     public Component getComponent() {
         return component;
     }
     
     public void setMessage(Message m) {
-        if (m.getSubject() == null || "".equals(m.getSubject().trim())) {
-            setComponentsVisible(new String[] { "subjectText" }, false);
-        } else {
-            setComponentsVisible(new String[] { "subjectText" }, true);
-            subject.setText(m.getSubject());
-        }
-        if (m.getFragment() == null || "".equals(m.getFragment().trim())) {
-            setComponentsVisible(new String[] { "fragmentText" }, false);
-        } else {
-            setComponentsVisible(new String[] { "fragmentText" }, true);
-            fragment.setText("<html>" + m.getFragment());
-            wrapLabel(fragment);
-        }
         String name = m.getSenderName();
         if (name == null || "".equals(name.trim())) {
             name = format("fromFormat2", m.getSenderAddress());
@@ -58,29 +53,50 @@ public class MessageView extends ResourceBundleForm {
             name = format("fromFormat1", name, m.getSenderAddress());
         }
         from.setText(name);
+
+        if (m.getSubject() == null || "".equals(m.getSubject().trim())) {
+            setComponentsVisible("subjectText", false);
+        } else {
+            setComponentsVisible("subjectText", true);
+            subject.setText(m.getSubject());
+        }
+
+        if (m.getFragment() == null || "".equals(m.getFragment().trim())) {
+            setComponentsVisible("fragmentText", false);
+        } else {
+            setComponentsVisible("fragmentText", true);
+            fragment.setText("<html>" + m.getFragment());
+            wrapLabel(fragment, getWidth(subject));
+        }
     }
     
-    private void setComponentsVisible(String[] names, boolean b) {
-        HashMap<String,Component> cmap = new HashMap<String,Component>();
+    private void setComponentsVisible(String name, boolean b) {
         Component[] comps = component.getComponents();
-        for (Component c : comps)
-            cmap.put(c.getName(), c);
-        for (String name : names) {
-            Component c = cmap.get(name);
-            if (c != null)
+        for (Component c : comps) {
+            if (name.equals(c.getName())) {
                 c.setVisible(b);
+                break;
+            }
         }
         component.invalidate();
     }
     
-    private void wrapLabel(JLabel l) {
-        int width = getInt("preferredWidth");
-        Font xx = l.getFont();  
-        int fontHeight = l.getFontMetrics(xx).getHeight();  
-        int stringWidth = l.getFontMetrics(xx).stringWidth(l.getText());
-        int linesCount = (int) Math.floor(stringWidth / width);  
-        linesCount = Math.max(1, linesCount + 2);  
-        l.setPreferredSize(new Dimension(width,
-                (fontHeight+2)*linesCount));   
+    private int getWidth(JLabel l) {
+        if (!l.isVisible())
+            return 0;
+        Font f = l.getFont();
+        return l.getFontMetrics(f).stringWidth(l.getText());
+    }
+
+    private void wrapLabel(JLabel l, int width) {
+        preferredWidth = Math.max(preferredWidth, width);
+        Font f = l.getFont();
+        FontMetrics fm = l.getFontMetrics(f);
+        int fontHeight = fm.getHeight();
+        int stringWidth = fm.stringWidth(l.getText());
+        int linesCount = (int) Math.floor(stringWidth / preferredWidth);
+        linesCount = Math.max(1, linesCount + 1);
+        l.setPreferredSize(new Dimension(preferredWidth,
+                (fontHeight+2)*linesCount));
     }
 }

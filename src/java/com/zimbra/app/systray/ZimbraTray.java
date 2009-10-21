@@ -39,6 +39,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private TrayIcon trayicon;
     private JPopupMenu menu;
     
+    private final ImageIcon NORMAL_ICON;
+    private final ImageIcon NEW_MAIL_ICON;
+    
     private HashMap<String,JMenuItem> accountMenuMap =
             new HashMap<String,JMenuItem>();
     private HashMap<String,AccountHandler> accountHandlerMap =
@@ -84,9 +87,10 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     public ZimbraTray() {
         checkIfRunning();
 
-        ImageIcon icon = (ImageIcon) getIcon("emailIcon");
+        NORMAL_ICON = (ImageIcon) getIcon("emailIcon");
+        NEW_MAIL_ICON = (ImageIcon) getIcon("newEmailIcon");
         HIDDEN_PARENT = new JFrame("zmtray hidden parent frame");
-        HIDDEN_PARENT.setIconImage(icon.getImage());
+        HIDDEN_PARENT.setIconImage(NORMAL_ICON.getImage());
     }
 
     public void run() {
@@ -145,8 +149,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         item.addActionListener(new ExitAction());
         menu.add(item);
         
-        ImageIcon icon = (ImageIcon) getIcon("emailIcon");
-        trayicon = new TrayIcon(icon.getImage(), this);
+        trayicon = new TrayIcon(NORMAL_ICON.getImage(), this);
         trayicon.setJPopupMenu(menu);
         trayicon.setImageAutoSize(true);
         try {
@@ -218,6 +221,10 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             List<Message> msgs = newMessages.get(acct);
             if (msgs != null)
                 msgs.clear();
+            
+            JMenuItem item = accountMenuMap.get(name);
+            item.setText(name);
+            
             String authToken = h.getAuthToken();
             if (authToken == null) {
                 JOptionPane.showMessageDialog(HIDDEN_PARENT,
@@ -255,7 +262,34 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     }
 
     public void showNewMessages() {
+        ArrayList<Object> list = new ArrayList<Object>();
+        for (Account a : newMessages.keySet()) {
+            List<Message> msgs = newMessages.get(a);
+            if (msgs != null && msgs.size() > 0) {
+                //if (newMessages.size() > 1)
+                    list.add(a.getAccountName());
+                for (Message m : msgs)
+                    list.add(m);
+            }
+        }
         
+        if (list.size() > 0)
+            MessageListView.showView(this, list);
+    }
+
+    /**
+     * Make sure that the notifier doesn't contain any read messages
+     */
+    public void updateUnreadMessages(Account account, List<Message> messages) {
+        List<Message> msgs = newMessages.get(account);
+        if (msgs != null) {
+            msgs.retainAll(messages);
+            JMenuItem item = accountMenuMap.get(account.getAccountName());
+            if (item != null) {
+                item.setText(format("accountMessageCount",
+                        account.getAccountName(), msgs.size()));
+            }
+        }
     }
 
     public void newMessagesFound(Account account, List<Message> messages) {
@@ -265,8 +299,10 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             newMessages.put(account, msgs);
         }
         msgs.addAll(messages);
-        for (Message m : messages) {
-            JOptionPane.showMessageDialog(HIDDEN_PARENT, new MessageView(m).getComponent());
+        JMenuItem item = accountMenuMap.get(account.getAccountName());
+        if (item != null) {
+            item.setText(format("accountMessageCount",
+                    account.getAccountName(), msgs.size()));
         }
         showNewMessages();
     }
