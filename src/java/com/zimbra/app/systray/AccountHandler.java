@@ -268,7 +268,8 @@ public class AccountHandler implements Runnable {
                     ArrayList<Appointment> appointments =
                             new ArrayList<Appointment>();
                     for (SearchResponse.Appointment a : r.appointments) {
-                        appointments.add(new Appointment(account, a));
+                        if (a.alarmData != null)
+                            appointments.add(new Appointment(account, a));
                     }
                     zmtray.appointmentsFound(account, appointments);
                 }

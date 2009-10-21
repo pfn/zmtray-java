@@ -138,7 +138,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         menu = new JPopupMenu();
         menu.addSeparator();
         item = new JMenuItem(getString("optionsMenu"));
-        item.addActionListener(new OptionMenuAction());
+        item.addActionListener(new NewAccountMenuAction());
         menu.add(item);
         menu.addSeparator();
         item = new JMenuItem(getString("exitMenu"));
@@ -238,7 +238,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         return executor;
     }
 
-    private class OptionMenuAction implements ActionListener {
+    private class NewAccountMenuAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             NewAccountForm form = new NewAccountForm(ZimbraTray.this);
             form.show();
@@ -270,5 +270,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
     public void appointmentsFound(Account account,
             List<Appointment> appointments) {
+        // TODO parse appointment data and schedule alarms
     }
 }
