@@ -114,7 +114,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     }
     
     private void checkIfRunning() {
-        TrayServer ts = new TrayServer();
+        TrayServer ts = new TrayServer(this);
         if (ts.checkIfRunning())
             System.exit(0);
         ts.start();
@@ -265,11 +265,20 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             newMessages.put(account, msgs);
         }
         msgs.addAll(messages);
+        for (Message m : messages) {
+            JOptionPane.showMessageDialog(HIDDEN_PARENT, new MessageView(m).getComponent());
+        }
         showNewMessages();
     }
 
     public void appointmentsFound(Account account,
             List<Appointment> appointments) {
         // TODO parse appointment data and schedule alarms
+    }
+    
+    public void pollNow() {
+        for (AccountHandler h : accountHandlerMap.values()) {
+            h.pollNow();
+        }
     }
 }

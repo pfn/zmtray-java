@@ -8,6 +8,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.UUID;
 
 public class TrayServer implements Runnable {
@@ -22,6 +23,10 @@ public class TrayServer implements Runnable {
     private boolean started = false;
     
     private final Prefs prefs;
+    private final ZimbraTray zmtray;
+    
+    private final HashMap<String,Command> commandMap =
+            new HashMap<String,Command>();
     
     static {
         try {
@@ -30,10 +35,22 @@ public class TrayServer implements Runnable {
         catch (UnknownHostException e) {
             throw new IllegalStateException(e);
         }
+        
     }
 
-    public TrayServer() {
+    public TrayServer(ZimbraTray zt) {
+        zmtray = zt;
         prefs = Prefs.getPrefs();
+        initializeCommands();
+    }
+    
+    private void initializeCommands() {
+        commandMap.put(CHECK_REQUEST, new Command() {
+            public boolean execute(String arg) {
+                zmtray.pollNow();
+                return true;
+            }
+        });
     }
     
     public void start() {
@@ -77,6 +94,7 @@ public class TrayServer implements Runnable {
     public boolean checkIfRunning() {
         return OK_RESPONSE.equals(sendCommand(CHECK_REQUEST));
     }
+
     public String sendCommand(String command) {
         int port = prefs.getPort();
         if (port == -1)
@@ -118,7 +136,7 @@ public class TrayServer implements Runnable {
         return response;
     }
     
-    private static class SocketProcessor implements Runnable {
+    private class SocketProcessor implements Runnable {
         private Socket s;
         private String ipcKey;
         SocketProcessor(Socket socket, String key) {
@@ -151,9 +169,15 @@ public class TrayServer implements Runnable {
                 }
                 
                 cmd = cmd.substring(idx + 1);
-                out.println(OK_RESPONSE);
+                Command c = commandMap.get(cmd);
+                String response;
+                if (c == null) {
+                    response = ERROR_RESPONSE;
+                } else {
+                    response = c.execute(null) ? OK_RESPONSE : ERROR_RESPONSE;
+                }
+                out.println(response);
                 out.flush();
-                System.out.println("TRAY SERVER COMMAND: [" + cmd + "]");
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -171,5 +195,8 @@ public class TrayServer implements Runnable {
                 catch (IOException e) { }
             }
         }
+    }
+    private interface Command {
+        boolean execute(String arg);
     }
 }

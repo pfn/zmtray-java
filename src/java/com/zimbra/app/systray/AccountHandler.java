@@ -363,6 +363,13 @@ System.out.println("searching for new items");
             f.cancel(false);
         }
     }
+    
+    public void pollNow() {
+        if (f.getDelay(TimeUnit.SECONDS) > 1) {
+            f.cancel(true);
+            zmtray.getExecutor().submit(this);
+        }
+    }
 
     public static Account getCurrentAccount() {
         return currentAccount.get();
