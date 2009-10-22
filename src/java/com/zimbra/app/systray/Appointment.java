@@ -97,11 +97,9 @@ public class Appointment {
             this.zt = zt;
             long now = System.currentTimeMillis();
             if (alarmTime <= now) {
-                System.out.println("Alarm overdue, show now");
                 zt.getExecutor().submit(this);
             } else {
                 long delay = alarmTime - now;
-                System.out.println("Alarm ok, schedule for later");
                 zt.getExecutor().schedule(this, delay, TimeUnit.MILLISECONDS);
             }
         }
@@ -109,7 +107,6 @@ public class Appointment {
         public void run() {
             EventQueue.invokeLater(new Runnable() {
                 public void run() {
-                    System.out.println("Show appointment: " + getName());
                     AppointmentListView.showView(zt, Appointment.this);
                 }
             });

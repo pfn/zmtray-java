@@ -55,7 +55,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private HashSet<Appointment> appointments = new HashSet<Appointment>();
 
     // TODO tune this value, or make adjustable
-    private final static int THREAD_POOL_SIZE = 20;
+    private final static int THREAD_POOL_SIZE = 5;
     
     private ScheduledExecutorService executor =
         Executors.newScheduledThreadPool(THREAD_POOL_SIZE);
@@ -291,7 +291,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         if (messages == null)
             messages = Collections.emptyList();
         if (msgs != null) {
-            msgs.retainAll(messages);
+            if (msgs.retainAll(messages))
+                showNewMessages();
         }
         String name = account.getAccountName();
         JMenuItem item = accountMenuMap.get(name);
@@ -320,16 +321,11 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
     public void appointmentsFound(Account account,
             List<Appointment> appts) {
-        // TODO parse appointment data and schedule alarms
         for (Appointment a : appts) {
             if (!appointments.contains(a)) {
                 appointments.add(a);
                 a.createAlarm(this);
             }
-            System.out.println("Appointment: " + a.getName());
-            System.out.println("    " + a.getAlarmName());
-            System.out.println("    " + new java.util.Date(a.getAlarmTime()));
-            System.out.println("    " + new java.util.Date(a.getEventTime()));
         }
     }
     
