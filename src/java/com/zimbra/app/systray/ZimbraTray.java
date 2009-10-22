@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -52,7 +53,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private HashMap<Account,List<Message>> newMessages =
             new HashMap<Account,List<Message>>();
 
-    private HashSet<Appointment> appointments = new HashSet<Appointment>();
+    private HashMap<Account,Set<Appointment>> appointments =
+            new HashMap<Account,Set<Appointment>>();
 
     // TODO tune this value, or make adjustable
     private final static int THREAD_POOL_SIZE = 5;
@@ -321,11 +323,27 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
     public void appointmentsFound(Account account,
             List<Appointment> appts) {
+        if (!appointments.containsKey(account)) {
+            appointments.put(account, new HashSet<Appointment>());
+        }
+        Set<Appointment> acctappts = appointments.get(account);
+        // add new appointments
         for (Appointment a : appts) {
-            if (!appointments.contains(a)) {
-                appointments.add(a);
+            if (!acctappts.contains(a)) {
+                System.out.println("Adding new alarm for: " + a.getName());
+                acctappts.add(a);
                 a.createAlarm(this);
             }
+        }
+        
+        // remove appointments dismissed elsewhere
+        Set<Appointment> removedAppointments =
+                new HashSet<Appointment>(acctappts);
+        acctappts.retainAll(appts);
+        removedAppointments.removeAll(acctappts);
+        for (Appointment a : removedAppointments) {
+            System.out.println("Cancelling alarm for: " + a.getName());
+            a.cancelAlarm();
         }
     }
     

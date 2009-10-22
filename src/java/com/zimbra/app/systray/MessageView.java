@@ -56,8 +56,10 @@ public class MessageView extends ResourceBundleForm {
 
         if (m.getSubject() == null || "".equals(m.getSubject().trim())) {
             setComponentVisible("subjectText", false);
+            setComponentVisible("$label.subject", false);
         } else {
             setComponentVisible("subjectText", true);
+            setComponentVisible("$label.subject", true);
             subject.setText(m.getSubject());
         }
 

@@ -41,9 +41,12 @@ public class AppointmentView extends ResourceBundleForm {
 
         if (a.getLocation() != null && !"".equals(a.getLocation().trim())) {
             setComponentVisible("locationText", true);
+            setComponentVisible("$label.location", true);
             location.setText(a.getLocation());
         } else {
             setComponentVisible("locationText", false);
+            setComponentVisible("$label.location", false);
+            location.setText(getString("noLocationText"));
         }
         
         setDisposition(a);
@@ -56,6 +59,7 @@ public class AppointmentView extends ResourceBundleForm {
         disposition.setVerticalAlignment(JLabel.TOP);
         disposition.setHorizontalAlignment(JLabel.LEFT);
         long d = a.getEventTime() - System.currentTimeMillis();
+        boolean now = false;
         boolean overdue = false;
         if (d < 0) {
             d *= -1;
@@ -69,16 +73,20 @@ public class AppointmentView extends ResourceBundleForm {
         minutes = minutes % 60;
         
         if (days > 0) {
-            time = format("daysHoursMinutes", format("days", days),
-                    format("hours", hours), format("minutes", minutes));
+            time = hours != 0 ? format("daysHours", format("days", days),
+                    format("hours", hours)) : format("days", days);
         } else if (hours > 0) {
-            time = format("hoursMinutes",
-                    format("hours", hours), format("minutes", minutes));
+            time = minutes != 0 ? format("hoursMinutes", format("hours", hours),
+                    format("minutes", minutes)) : format("hours", hours);
         } else {
             time = format("minutes", minutes);
+            if (minutes == 0)
+                now = true;
         }
         if (overdue) {
             fmt = "overdueText";
+        } else if (now) {
+            fmt = "nowText";
         } else {
             fmt = "inText";
         }

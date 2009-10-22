@@ -3,11 +3,13 @@ package com.zimbra.app.systray;
 import com.zimbra.app.soap.messages.SearchResponse;
 
 import java.awt.EventQueue;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class Appointment {
     private long snoozeTime;
     private Alarm alarm;
+    private boolean dismissed;
 
     public Appointment(Account account, SearchResponse.Appointment appt) {
         this.account = account;
@@ -60,6 +62,8 @@ public class Appointment {
     // in milliseconds
     private int duration;
     public int getDuration() { return duration; }
+    
+    public boolean isDismissed() { return dismissed; }
 
     @Override
     public int hashCode() {
@@ -86,21 +90,28 @@ public class Appointment {
     public void createAlarm(ZimbraTray zt) {
         alarm = new Alarm(zt);
     }
-
-    public Alarm getAlarm() {
-        return alarm;
+    
+    public void cancelAlarm() {
+        dismissed = true;
+        
+        if (alarm.f != null && !alarm.f.isDone())
+            alarm.f.cancel(true);
     }
 
-    public class Alarm implements Runnable {
+    private class Alarm implements Runnable {
         private ZimbraTray zt;
+        private ScheduledFuture<?> f;
         public Alarm(ZimbraTray zt) {
             this.zt = zt;
             long now = System.currentTimeMillis();
             if (alarmTime <= now) {
                 zt.getExecutor().submit(this);
+                System.out.println(getName() + ":alarm overdue");
             } else {
                 long delay = alarmTime - now;
-                zt.getExecutor().schedule(this, delay, TimeUnit.MILLISECONDS);
+                System.out.println(getName() + ":scheduling alarm for " + delay);
+                f = zt.getExecutor().schedule(this, delay,
+                        TimeUnit.MILLISECONDS);
             }
         }
 

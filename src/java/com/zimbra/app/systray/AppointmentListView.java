@@ -1,13 +1,20 @@
 package com.zimbra.app.systray;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.util.HashMap;
 
+import javax.swing.AbstractButton;
 import javax.swing.DefaultCellEditor;
+import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
+import javax.swing.JPanel;
+import javax.swing.JRootPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.border.LineBorder;
@@ -22,6 +29,7 @@ import com.sun.awt.AWTUtilities;
 public class AppointmentListView extends ResourceBundleForm
 implements TableCellRenderer {
     private boolean rowHeightSet;
+    private JPanel panel = new JPanel();
     private final HashMap<Appointment,AppointmentView> appointmentViewCache =
             new HashMap<Appointment, AppointmentView>();
     
@@ -29,8 +37,13 @@ implements TableCellRenderer {
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value,
             boolean selected, boolean focused, int row, int col) {
-        AppointmentView view = getAppointmentView((Appointment) value);
+        Appointment a = (Appointment) value;
+        AppointmentView view = getAppointmentView(a);
 
+        if (a.isDismissed()) {
+            removeAppointment(row);
+        }
+        
         if (!rowHeightSet) {
             table.setRowHeight(view.getComponent().getPreferredSize().height
                     + table.getRowMargin());
@@ -44,6 +57,15 @@ implements TableCellRenderer {
         }
         lastRowCount = rowCount;
         return view.getComponent();
+    }
+    
+    private void removeAppointment(final int row) {
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                model.removeRow(row);
+                showView(null, null);
+            }
+        });
     }
     
     private AppointmentView getAppointmentView(Appointment a) {
@@ -71,8 +93,18 @@ implements TableCellRenderer {
         c.setCellRenderer(this);
         c.setCellEditor(new TableCellEditor());
         c.setPreferredWidth(getInt("preferredWidth"));
+        
+        layout();
     }
 
+    private void layout() {
+        JButton snooze = new JButton();
+        JButton dismiss = new JButton();
+        
+        panel.setLayout(createLayoutManager());
+        panel.add(snooze, "snoozeButton");
+        panel.add(dismiss, "dismissButton");
+    }
     public static void hideView() {
         if (INSTANCE.dlg != null && INSTANCE.dlg.isVisible()) {
             INSTANCE.dlg.setVisible(false);
@@ -88,17 +120,21 @@ implements TableCellRenderer {
     }
     public static void showView(ZimbraTray zt, Appointment appt) {
         
-        INSTANCE.model.addRow(new Object[] { appt });
+        if (appt != null)
+            INSTANCE.model.addRow(new Object[] { appt });
+        
         JDialog dlg = INSTANCE.dlg;
         if (dlg == null) {
             dlg = new JDialog(zt.HIDDEN_PARENT, INSTANCE.getString("title"));
             dlg.setAlwaysOnTop(true);
             dlg.add(INSTANCE.table);
+            dlg.add(INSTANCE.panel, BorderLayout.SOUTH);
             //dlg.setUndecorated(true);
             INSTANCE.dlg = dlg;
             JComponent c = (JComponent) dlg.getContentPane();
             c.setBorder(new LineBorder(Color.black));
             setWindowTranslucent();
+            dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         }
         int rows = INSTANCE.model.getRowCount();
         Dimension d = INSTANCE.table.getPreferredSize();
@@ -106,11 +142,13 @@ implements TableCellRenderer {
                 + INSTANCE.table.getRowMargin());
         
         dlg.pack();
-        Util.centerWindow(dlg);
-        if (!dlg.isVisible())
+        if (!dlg.isVisible() && INSTANCE.model.getRowCount() > 0) {
+            Util.centerWindow(dlg);
             dlg.setVisible(true);
-        dlg.toFront();
-        dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+            dlg.toFront();
+        }
+        if (INSTANCE.model.getRowCount() == 0)
+            dlg.setVisible(false);
     }
     
     private class TableCellEditor extends DefaultCellEditor {
@@ -129,8 +167,13 @@ implements TableCellRenderer {
         public Component getTableCellEditorComponent(JTable table, Object value,
                 boolean selected, int row, int col) {
             this.value = value;
-            AppointmentView view = new AppointmentView((Appointment) value);
-            appointmentViewCache.put((Appointment) value, view);
+            Appointment a = (Appointment) value;
+            AppointmentView view = new AppointmentView(a);
+            if (a.isDismissed()) {
+                removeAppointment(row);
+            }
+        
+            appointmentViewCache.put(a, view);
             return view.getComponent();
         }
     }
