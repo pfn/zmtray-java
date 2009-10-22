@@ -119,7 +119,6 @@ implements X509TrustManager {
         X509TrustManager accountTrustManager = null;
         Account acct = AccountHandler.getCurrentAccount();
         if (acct != null) {
-            System.out.println("Using trust manager from: " + acct.getAccountName());
             accountTrustManager = acct.getTrustManager();
         }
         if (accountTrustManager != null) {

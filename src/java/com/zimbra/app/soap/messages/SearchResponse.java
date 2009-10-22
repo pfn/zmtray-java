@@ -50,6 +50,9 @@ public class SearchResponse {
         @Element(type=Type.ATTRIBUTE, optional=false)
         public String name;
 
+        @Element(type=Type.ATTRIBUTE, optional=false, name="dur")
+        public int duration;
+
         @Element
         public AlarmData alarmData;
 

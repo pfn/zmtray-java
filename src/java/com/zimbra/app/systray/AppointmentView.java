@@ -32,8 +32,9 @@ public class AppointmentView extends ResourceBundleForm {
     }
     
     public void setAppointment(Appointment a) {
-        name.setText(a.getName());
-        when.setText(format("eventTime", new Date(a.getEventTime())));
+        name.setText("<html><b>" + a.getName());
+        when.setText(format("eventTime", new Date(a.getEventTime()),
+                new Date(a.getEventTime() + a.getDuration())));
 
         if (a.getLocation() != null && !"".equals(a.getLocation().trim())) {
             setComponentVisible("locationText", true);

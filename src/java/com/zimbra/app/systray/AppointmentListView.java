@@ -10,36 +10,31 @@ import javax.swing.JDialog;
 import javax.swing.JList;
 import javax.swing.ListCellRenderer;
 
-public class MessageListView implements ListCellRenderer {
+public class AppointmentListView implements ListCellRenderer {
     private ListCellRenderer defaultRenderer = new DefaultListCellRenderer();
-    private MessageView view = new MessageView();
+    private AppointmentView view = new AppointmentView();
     
-    private final static MessageListView INSTANCE = new MessageListView();
+    private final static AppointmentListView INSTANCE =
+            new AppointmentListView();
     
     private final JList list;
     
     private JDialog dlg;
-    private Color background = Color.white;
+    private Color background;
+    private final DefaultListModel model;
     
     public Component getListCellRendererComponent(JList list, Object value,
             int idx, boolean selected, boolean focused) {
-        Component c;
-        if (value instanceof Message) {
-            view.setMessage((Message) value);
-            c = view.getComponent();
-            c.setBackground(background);
-        } else {
-            c = defaultRenderer.getListCellRendererComponent(
-                list, "<html><b><i>" + value, idx, false, false);
-            c.setBackground(background);
-        }
-        return c;
+        view.setAppointment((Appointment) value);
+        return view.getComponent();
     }
 
-    private MessageListView() {
-        list = new JList();
+    private AppointmentListView() {
+        model = new DefaultListModel();
+        list  = new JList(model);
         list.setCellRenderer(this);
         
+        background = view.getComponent().getBackground();
     }
 
     public static void hideView() {
@@ -48,13 +43,9 @@ public class MessageListView implements ListCellRenderer {
         }
     }
 
-    public static void showView(ZimbraTray zt, List<?> items) {
-        INSTANCE.view.resetPreferredWidth();
+    public static void showView(ZimbraTray zt, Appointment appt) {
         
-        DefaultListModel model = new DefaultListModel();
-        for (Object item : items) {
-            model.addElement(item);
-        }
+        INSTANCE.model.addElement(appt);
         JDialog dlg = INSTANCE.dlg;
         if (dlg == null) {
             dlg = new JDialog(zt.HIDDEN_PARENT);
@@ -62,8 +53,6 @@ public class MessageListView implements ListCellRenderer {
             dlg.add(INSTANCE.list);
             INSTANCE.dlg = dlg;
         }
-        
-        INSTANCE.list.setModel(model);
         
         dlg.pack();
         dlg.setVisible(true);

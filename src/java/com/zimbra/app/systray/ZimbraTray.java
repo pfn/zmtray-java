@@ -14,6 +14,7 @@ import java.beans.PropertyEditorManager;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -51,6 +52,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private HashMap<Account,List<Message>> newMessages =
             new HashMap<Account,List<Message>>();
 
+    private HashSet<Appointment> appointments = new HashSet<Appointment>();
+
+    // TODO tune this value, or make adjustable
     private final static int THREAD_POOL_SIZE = 20;
     
     private ScheduledExecutorService executor =
@@ -315,10 +319,17 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     }
 
     public void appointmentsFound(Account account,
-            List<Appointment> appointments) {
+            List<Appointment> appts) {
         // TODO parse appointment data and schedule alarms
-        for (Appointment a : appointments) {
+        for (Appointment a : appts) {
+            if (!appointments.contains(a)) {
+                appointments.add(a);
+                a.createAlarm(this);
+            }
             System.out.println("Appointment: " + a.getName());
+            System.out.println("    " + a.getAlarmName());
+            System.out.println("    " + new java.util.Date(a.getAlarmTime()));
+            System.out.println("    " + new java.util.Date(a.getEventTime()));
         }
     }
     
@@ -335,5 +346,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         }
 
         setTrayIcon(hasNew ? NEW_MAIL_ICON.getImage() : NORMAL_ICON.getImage());
+
+        if (!hasNew)
+            MessageListView.hideView();
     }
 }
