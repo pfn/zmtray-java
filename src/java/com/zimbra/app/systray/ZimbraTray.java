@@ -119,7 +119,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             Account account = prefs.getAccount(name);
             if (!account.isEnabled()) continue;
             AccountHandler handler = new AccountHandler(account, this);
-            accountHandlerMap.put(name, handler);
+            accountHandlerMap.put(account.getId(), handler);
             addAccountToTray(account);
         }
     }
@@ -172,10 +172,10 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             return;
         String name = acct.getAccountName();
         JMenuItem item = new JMenuItem(name);
-        item.setActionCommand(name);
+        item.setActionCommand(acct.getId());
         item.addActionListener(openClientAction);
         menu.insert(item, 0);
-        accountMenuMap.put(name, item);
+        accountMenuMap.put(acct.getId(), item);
     }
     
     //private void removeAccountFromTray(Account acct) {
@@ -222,15 +222,17 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                 return;
             }
             Desktop d = Desktop.getDesktop();
-            String name = e.getActionCommand();
-            AccountHandler h = accountHandlerMap.get(name);
+            String id = e.getActionCommand();
+
+            AccountHandler h = accountHandlerMap.get(id);
             Account acct = h.getAccount();
+            String name = acct.getAccountName();
             List<Message> msgs = newMessages.get(acct);
             if (msgs != null)
                 msgs.clear();
             
             updateTrayIcon();
-            JMenuItem item = accountMenuMap.get(name);
+            JMenuItem item = accountMenuMap.get(id);
             item.setText(name);
             
             String authToken = h.getAuthToken();
@@ -263,7 +265,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                 if (!account.isEnabled()) return;
                 AccountHandler handler = new AccountHandler(
                         account, ZimbraTray.this);
-                accountHandlerMap.put(name, handler);
+                accountHandlerMap.put(account.getId(), handler);
                 addAccountToTray(account);
             }
         }
@@ -296,7 +298,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                 showNewMessages();
         }
         String name = account.getAccountName();
-        JMenuItem item = accountMenuMap.get(name);
+        JMenuItem item = accountMenuMap.get(account.getId());
         if (item != null) {
             item.setText(msgs != null && msgs.size() > 0 ?
                     format("accountMessageCount", name, msgs.size()) : name);
@@ -311,7 +313,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             newMessages.put(account, msgs);
         }
         msgs.addAll(messages);
-        JMenuItem item = accountMenuMap.get(account.getAccountName());
+        JMenuItem item = accountMenuMap.get(account.getId());
         if (item != null) {
             item.setText(format("accountMessageCount",
                     account.getAccountName(), msgs.size()));
@@ -360,7 +362,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                 try {
                     for (Account account : apptmap.keySet()) {
                         AccountHandler h = accountHandlerMap.get(
-                                account.getAccountName());
+                                account.getId());
                         h.dismissAppointmentAlarms(apptmap.get(account));
                     }
                 }

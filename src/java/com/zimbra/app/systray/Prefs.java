@@ -1,8 +1,9 @@
 package com.zimbra.app.systray;
 
 import java.security.GeneralSecurityException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -51,7 +52,13 @@ public class Prefs {
 
     public List<String> getAccountNames() {
         try {
-            return Arrays.asList(prefs.node(ACCOUNTS_KEY).childrenNames());
+            Preferences accounts = prefs.node(ACCOUNTS_KEY);
+            String[] uuids = accounts.childrenNames();
+            ArrayList<String> names = new ArrayList<String>();
+            for (String id : uuids) {
+                names.add(accounts.node(id).get(Account.NAME_KEY, null));
+            }
+            return names;
         }
         catch (BackingStoreException e) {
             throw new IllegalStateException(e);
@@ -59,14 +66,21 @@ public class Prefs {
     }
 
     public Account createAccount(String name) {
-        return new Account(prefs.node(ACCOUNTS_KEY).node(name), cipher, key);
+        String id = UUID.randomUUID().toString();
+        Preferences accounts = prefs.node(ACCOUNTS_KEY);
+        Account acct = new Account(accounts.node(id), cipher, key);
+
+        acct.setAccountName(name);
+        return acct;
     }
     
     public Account getAccount(String name) {
         Preferences accounts = prefs.node(ACCOUNTS_KEY);
         try {
-            if (accounts.nodeExists(name)) {
-                return new Account(accounts.node(name), cipher, key);
+            String[] uuids = accounts.childrenNames();
+            for (String id : uuids) {
+                if (name.equals(accounts.node(id).get(Account.NAME_KEY, null)))
+                    return new Account(accounts.node(id), cipher, key);
             }
         }
         catch (BackingStoreException e) {

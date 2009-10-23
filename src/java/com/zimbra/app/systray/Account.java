@@ -25,7 +25,6 @@ import javax.crypto.SecretKey;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
-// TODO re-key account by ID, nodename = ID(make it easy to change account names)
 public class Account {
     private final Cipher cipher;
     private final SecretKey key;
@@ -42,7 +41,7 @@ public class Account {
     private final static String FOLDERS_KEY   = "folders";
     private final static String CALENDARS_KEY = "calendars";
     private final static String ICON_KEY      = "icon";
-    //private final static String NAME_KEY      = "name";
+    public  final static String NAME_KEY      = "name";
     private final static String SOUND_KEY     = "sound";
     private final static String PASS_KEY      = "password";
     private final static String SALT_KEY      = "salt";
@@ -72,13 +71,16 @@ public class Account {
         return prefs.get(SERVER_KEY, null);
     }
 
-    public String getAccountName() {
+    public String getId() {
         return prefs.name();
     }
 
+    public String getAccountName() {
+        return prefs.get(NAME_KEY, null);
+    }
+
     public void setAccountName(String name) {
-        //prefs.put(NAME_KEY, name);
-        throw new UnsupportedOperationException("setAccountName");
+        prefs.put(NAME_KEY, name);
     }
 
     public List<String> getSubscribedMailFolders() {
@@ -287,15 +289,14 @@ public class Account {
     
     @Override
     public int hashCode() {
-        return getAccountName().hashCode();
+        return getId().hashCode();
     }
 
     @Override
     public boolean equals(Object other) {
         boolean equals = false;
         if (other instanceof Account) {
-            equals = ((Account) other).getAccountName().equals(
-                    getAccountName());
+            equals = ((Account) other).getId().equals(getId());
         }
         return equals;
     }

@@ -23,7 +23,6 @@ import javax.swing.table.TableColumn;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
 import com.hanhuy.common.ui.Util;
-import com.sun.awt.AWTUtilities;
 
 public class AppointmentListView extends ResourceBundleForm
 implements TableCellRenderer {
@@ -198,7 +197,7 @@ implements TableCellRenderer {
     private static void setWindowTranslucent() {
         try {
             Class.forName("com.sun.awt.AWTUtilities");
-            AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
+            com.sun.awt.AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
         }
         catch (ClassNotFoundException e) { } // ignore
     }

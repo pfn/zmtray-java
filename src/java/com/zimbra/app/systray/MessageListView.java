@@ -10,7 +10,7 @@ import javax.swing.JDialog;
 import javax.swing.JList;
 import javax.swing.ListCellRenderer;
 
-import com.sun.awt.AWTUtilities;
+//import com.sun.awt.AWTUtilities;
 
 public class MessageListView implements ListCellRenderer {
     private ListCellRenderer defaultRenderer = new DefaultListCellRenderer();
@@ -47,7 +47,7 @@ public class MessageListView implements ListCellRenderer {
     private static void setWindowTranslucent() {
         try {
             Class.forName("com.sun.awt.AWTUtilities");
-            AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
+            com.sun.awt.AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
         }
         catch (ClassNotFoundException e) { } // ignore
     }

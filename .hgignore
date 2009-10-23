@@ -1,4 +1,5 @@
 ^build$
+^dist$
 .swp
 ^test/test.properties$
 ^test/eclipse$
