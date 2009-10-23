@@ -27,6 +27,7 @@ import com.sun.awt.AWTUtilities;
 
 public class AppointmentListView extends ResourceBundleForm
 implements TableCellRenderer {
+    private ZimbraTray zmtray;
     private final static int[] SNOOZE_TIMES = {
         1  * 60 * 1000,
         5  * 60 * 1000,
@@ -70,15 +71,30 @@ implements TableCellRenderer {
         int rowCount = model.getRowCount();
         if (rowCount != lastRowCount) {
             dlg.pack();
-            Util.centerWindow(dlg);
         }
         lastRowCount = rowCount;
         return view.getComponent();
     }
     
+    public void removeAppointment(Appointment a) {
+        int count = model.getRowCount();
+        boolean found = false;
+        int i;
+        for (i = 0; i < count && !found; i++) {
+            found = a.equals(model.getValueAt(i, 0));
+        }
+        
+        if (found) {
+            System.out.println(a.getName() + ": found at: " + (i - 1));
+            removeAppointment(i - 1);
+        } else {
+            System.out.println(a.getName() + ": not found in view");
+        }
+    }
     private void removeAppointment(final int row) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
+                cellEditor.cancelCellEditing();
                 model.removeRow(row);
                 showView(null, null);
             }
@@ -87,7 +103,7 @@ implements TableCellRenderer {
     
     private AppointmentView getAppointmentView(Appointment a) {
         if (!appointmentViewCache.containsKey(a)) {
-            appointmentViewCache.put(a, new AppointmentView(a));
+            appointmentViewCache.put(a, new AppointmentView(this, a));
         }
         return appointmentViewCache.get(a);
     }
@@ -99,6 +115,7 @@ implements TableCellRenderer {
     
     private JDialog dlg;
     private final DefaultTableModel model;
+    private final TableCellEditor cellEditor;
     
     private AppointmentListView() {
         model = new DefaultTableModel();
@@ -108,7 +125,8 @@ implements TableCellRenderer {
         model.addColumn("Appointment Reminders");
         TableColumn c = table.getColumn("Appointment Reminders");
         c.setCellRenderer(this);
-        c.setCellEditor(new TableCellEditor());
+        cellEditor = new TableCellEditor();
+        c.setCellEditor(cellEditor);
         c.setPreferredWidth(getInt("preferredWidth"));
         
         layout();
@@ -152,10 +170,21 @@ implements TableCellRenderer {
                     Appointment a = (Appointment) model.getValueAt(i, 0);
                     a.snoozeAlarm(snooze);
                 }
-                for (int i = 0; i < rows; i++) {
-                    model.removeRow(0);
-                }
+                model.setRowCount(0);
                 snoozeTime.requestFocusInWindow();
+                hideView();
+            }
+        });
+        dismiss.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                ArrayList<Appointment> appointments =
+                        new ArrayList<Appointment>();
+                int rows = model.getRowCount();
+                for (int i = 0; i < rows; i++) {
+                    appointments.add((Appointment) model.getValueAt(i, 0));
+                }
+                getZimbraTray().dismissAppointments(appointments);
+                model.setRowCount(0);
                 hideView();
             }
         });
@@ -175,6 +204,9 @@ implements TableCellRenderer {
     }
     public static void showView(ZimbraTray zt, Appointment appt) {
         
+        if (zt != null)
+            INSTANCE.zmtray = zt;
+
         INSTANCE.appointmentViewCache.clear();
         if (appt != null)
             INSTANCE.model.addRow(new Object[] { appt });
@@ -221,7 +253,8 @@ implements TableCellRenderer {
                 boolean selected, int row, int col) {
             this.value = value;
             Appointment a = (Appointment) value;
-            AppointmentView view = new AppointmentView(a);
+            AppointmentView view = new AppointmentView(
+                    AppointmentListView.this, a);
             if (a.isDismissed()) {
                 removeAppointment(row);
             }
@@ -229,5 +262,9 @@ implements TableCellRenderer {
             appointmentViewCache.put(a, view);
             return view.getComponent();
         }
+    }
+    
+    ZimbraTray getZimbraTray() {
+        return zmtray;
     }
 }

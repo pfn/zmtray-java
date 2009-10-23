@@ -25,6 +25,7 @@ import javax.crypto.SecretKey;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
+// TODO re-key account by ID, nodename = ID(make it easy to change account names)
 public class Account {
     private final Cipher cipher;
     private final SecretKey key;
@@ -41,6 +42,7 @@ public class Account {
     private final static String FOLDERS_KEY   = "folders";
     private final static String CALENDARS_KEY = "calendars";
     private final static String ICON_KEY      = "icon";
+    //private final static String NAME_KEY      = "name";
     private final static String SOUND_KEY     = "sound";
     private final static String PASS_KEY      = "password";
     private final static String SALT_KEY      = "salt";
@@ -130,8 +132,10 @@ public class Account {
             if (pwbuf == null)
                 return null;
 
-            cipher.init(Cipher.DECRYPT_MODE, key);
-            pwbuf = cipher.doFinal(pwbuf);
+            synchronized (cipher) {
+                cipher.init(Cipher.DECRYPT_MODE, key);
+                pwbuf = cipher.doFinal(pwbuf);
+            }
             String salt = prefs.get(SALT_KEY, null);
             if (salt == null)
                 throw new IllegalStateException("no salt");
@@ -159,11 +163,13 @@ public class Account {
                 salt = UUID.randomUUID().toString();
                 prefs.put(SALT_KEY, salt);
             }
-            cipher.init(Cipher.ENCRYPT_MODE, key);
+            synchronized (cipher) {
+                cipher.init(Cipher.ENCRYPT_MODE, key);
 
-            byte[] pwbuf = (salt + ":" + password).getBytes("utf-8");
-            pwbuf = cipher.doFinal(pwbuf);
-            prefs.putByteArray(PASS_KEY, pwbuf);
+                byte[] pwbuf = (salt + ":" + password).getBytes("utf-8");
+                pwbuf = cipher.doFinal(pwbuf);
+                prefs.putByteArray(PASS_KEY, pwbuf);
+            }
         }
         catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);

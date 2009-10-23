@@ -1,10 +1,10 @@
 package com.zimbra.app.systray;
 
-import com.zimbra.app.soap.messages.SearchResponse;
-
 import java.awt.EventQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import com.zimbra.app.soap.messages.SearchResponse;
 
 public class Appointment {
     private Alarm alarm;

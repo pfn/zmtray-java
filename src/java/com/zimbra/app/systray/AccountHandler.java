@@ -21,6 +21,8 @@ import com.zimbra.app.soap.messages.AuthRequest;
 import com.zimbra.app.soap.messages.AuthResponse;
 import com.zimbra.app.soap.messages.BatchRequest;
 import com.zimbra.app.soap.messages.BatchResponse;
+import com.zimbra.app.soap.messages.DismissCalendarItemAlarmRequest;
+import com.zimbra.app.soap.messages.DismissCalendarItemAlarmResponse;
 import com.zimbra.app.soap.messages.GetFolderRequest;
 import com.zimbra.app.soap.messages.GetFolderResponse;
 import com.zimbra.app.soap.messages.GetInfoRequest;
@@ -382,6 +384,51 @@ System.out.println(account.getAccountName() + ": searching for new items");
             });
         } catch (InterruptedException e) { // ignore
         } catch (InvocationTargetException e) { // ignore
+        }
+    }
+    
+    public void dismissAppointmentAlarms(List<Appointment> appts) {
+        DismissCalendarItemAlarmRequest r =
+                new DismissCalendarItemAlarmRequest();
+        HashMap<Integer,Appointment> apptmap =
+                new HashMap<Integer,Appointment>();
+        for (Appointment appt : appts) {
+            System.out.println("Attempting to dismiss: " + appt.getName());
+            apptmap.put(appt.getId(), appt);
+            DismissCalendarItemAlarmRequest.Appointment a =
+                new DismissCalendarItemAlarmRequest.Appointment();
+            a.dismissedAt = System.currentTimeMillis();
+            a.id = appt.getId();
+            r.appointments.add(a);
+        }
+        try {
+            currentAccount.set(account);
+            DismissCalendarItemAlarmResponse ret = SoapInterface.call(
+                    r, DismissCalendarItemAlarmResponse.class,
+                    account.getServiceURL(), authToken);
+            for (DismissCalendarItemAlarmResponse.Appointment ap :
+                ret.appointments) {
+                Appointment appt = apptmap.get(ap.id);
+                appt.cancelAlarm();
+                System.out.println("Successfully dismissed: " + appt.getName());
+            }
+        } catch (SOAPFaultException e) {
+            showMessage(account.getAccountName() + " : " + 
+                    e.reason.text, "DismissCalendarItemAlarmRequest",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "IOException",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (SOAPException e) {
+            e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "SOAPException",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+        finally {
+            currentAccount.set(null);
         }
     }
 

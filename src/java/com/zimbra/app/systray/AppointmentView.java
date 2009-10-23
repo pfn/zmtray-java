@@ -1,8 +1,10 @@
 package com.zimbra.app.systray;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -14,23 +16,27 @@ import javax.swing.JPanel;
 import com.hanhuy.common.ui.ResourceBundleForm;
 
 public class AppointmentView extends ResourceBundleForm {
+    private final AppointmentListView view;
     private Appointment appt;
     private JComponent component = new JPanel();
     
-    private JLabel  locLabel    = new JLabel();
-    private JLabel  name        = new JLabel();
-    private JLabel  when        = new JLabel();
-    private JLabel  location    = new JLabel();
-    private JLabel  disposition = new JLabel();
-    private JButton dismiss     = new JButton();
+    private final JLabel  locLabel    = new JLabel();
+    private final JLabel  name        = new JLabel();
+    private final JLabel  when        = new JLabel();
+    private final JLabel  location    = new JLabel();
+    private final JLabel  disposition = new JLabel();
+    private final JButton dismiss     = new JButton();
+    
+    private final Color locLabelForeground = locLabel.getForeground();
 
-    public AppointmentView() {
+    public AppointmentView(AppointmentListView v) {
+        view = v;
         component.setLayout(createLayoutManager());
         layout();
     }
     
-    public AppointmentView(Appointment a) {
-        this();
+    public AppointmentView(AppointmentListView v, Appointment a) {
+        this(v);
         appt = a;
         setAppointment(a);
     }
@@ -41,12 +47,14 @@ public class AppointmentView extends ResourceBundleForm {
                 new Date(a.getEventTime() + a.getDuration())));
 
         if (a.getLocation() != null && !"".equals(a.getLocation().trim())) {
+            locLabel.setForeground(locLabelForeground);
+            location.setForeground(locLabelForeground);
             location.setText(a.getLocation());
             locLabel.setText(getString("locationLabel.text"));
         } else {
-            locLabel.setText(
-                    getString("locationLabel.text").replaceAll(".", " "));
-            location.setText(" ");
+            locLabel.setForeground(locLabel.getBackground());
+            location.setForeground(location.getBackground());
+            location.setText("");
         }
         
         setDisposition(a);
@@ -77,7 +85,8 @@ public class AppointmentView extends ResourceBundleForm {
                     format("hours", hours)) : format("days", days);
         } else if (hours > 0) {
             time = minutes != 0 ? format("hoursMinutes", format("hours", hours),
-                    format("minutes", minutes)) : format("hours", hours);
+                    format("minutes", minutes + (overdue ? 0 : 1))) :
+                        format("hours", hours);
         } else {
             time = format("minutes", minutes + 1);
             if (overdue && minutes == 0) {
@@ -107,7 +116,8 @@ public class AppointmentView extends ResourceBundleForm {
         
         dismiss.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                System.out.println("Action: " + appt.getName());
+                view.getZimbraTray().dismissAppointments(Arrays.asList(appt));
+                view.removeAppointment(appt);
             }
         });
     }

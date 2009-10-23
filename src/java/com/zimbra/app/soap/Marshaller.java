@@ -72,6 +72,11 @@ public class Marshaller {
                     Class<?> oType = (Class)
                             t.getActualTypeArguments()[0];
                     Collection col = (Collection) value;
+                    if (!anno.optional() && col.size() == 0) {
+                        throw new IllegalArgumentException(String.format(
+                                "%s.%s is not optional",
+                                c.getSimpleName(), f.getName()));
+                    }
                     for (Object obj : col) {
                         if (oType == String.class) {
                             SOAPElement ce = child.addChildElement(

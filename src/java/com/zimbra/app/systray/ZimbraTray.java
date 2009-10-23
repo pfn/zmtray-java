@@ -344,6 +344,33 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         }
     }
     
+    public void dismissAppointments(List<Appointment> appts) {
+        final HashMap<Account,List<Appointment>> apptmap =
+                new HashMap<Account,List<Appointment>>();
+        for (Appointment a : appts) {
+            if (!apptmap.containsKey(a.getAccount())) {
+                apptmap.put(a.getAccount(), new ArrayList<Appointment>());
+            }
+            List<Appointment> acctappts = apptmap.get(a.getAccount());
+            acctappts.add(a);
+        }
+        
+        getExecutor().submit(new Runnable() {
+            public void run() {
+                try {
+                    for (Account account : apptmap.keySet()) {
+                        AccountHandler h = accountHandlerMap.get(
+                                account.getAccountName());
+                        h.dismissAppointmentAlarms(apptmap.get(account));
+                    }
+                }
+                catch (RuntimeException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+    
     public void pollNow() {
         for (AccountHandler h : accountHandlerMap.values()) {
             h.pollNow();
