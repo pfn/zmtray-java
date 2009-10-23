@@ -17,6 +17,7 @@ public class AppointmentView extends ResourceBundleForm {
     private Appointment appt;
     private JComponent component = new JPanel();
     
+    private JLabel  locLabel    = new JLabel();
     private JLabel  name        = new JLabel();
     private JLabel  when        = new JLabel();
     private JLabel  location    = new JLabel();
@@ -40,13 +41,12 @@ public class AppointmentView extends ResourceBundleForm {
                 new Date(a.getEventTime() + a.getDuration())));
 
         if (a.getLocation() != null && !"".equals(a.getLocation().trim())) {
-            setComponentVisible("locationText", true);
-            setComponentVisible("$label.location", true);
             location.setText(a.getLocation());
+            locLabel.setText(getString("locationLabel.text"));
         } else {
-            setComponentVisible("locationText", false);
-            setComponentVisible("$label.location", false);
-            location.setText(getString("noLocationText"));
+            locLabel.setText(
+                    getString("locationLabel.text").replaceAll(".", " "));
+            location.setText(" ");
         }
         
         setDisposition(a);
@@ -79,9 +79,11 @@ public class AppointmentView extends ResourceBundleForm {
             time = minutes != 0 ? format("hoursMinutes", format("hours", hours),
                     format("minutes", minutes)) : format("hours", hours);
         } else {
-            time = format("minutes", minutes);
-            if (minutes == 0)
+            time = format("minutes", minutes + 1);
+            if (overdue && minutes == 0) {
+                overdue = false;
                 now = true;
+            }
         }
         if (overdue) {
             fmt = "overdueText";
@@ -99,6 +101,7 @@ public class AppointmentView extends ResourceBundleForm {
         component.add(name,        "nameText");
         component.add(when,        "whenText");
         component.add(location,    "locationText");
+        component.add(locLabel,    "locationLabel");
         component.add(disposition, "dispositionText");
         component.add(dismiss,     "dismissButton");
         
@@ -113,14 +116,4 @@ public class AppointmentView extends ResourceBundleForm {
         return component;
     }
     
-    private void setComponentVisible(String name, boolean b) {
-        Component[] comps = component.getComponents();
-        for (Component c : comps) {
-            if (name.equals(c.getName())) {
-                c.setVisible(b);
-                break;
-            }
-        }
-        component.invalidate();
-    }
 }

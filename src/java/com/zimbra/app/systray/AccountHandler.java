@@ -279,9 +279,17 @@ public class AccountHandler implements Runnable {
                 } else if (r.appointments.size() > 0) {
                     ArrayList<Appointment> appointments =
                             new ArrayList<Appointment>();
+                    long alarmStartRange = System.currentTimeMillis() -
+                            TimeUnit.MILLISECONDS.convert(3, TimeUnit.DAYS);
+                    long alarmEndRange   = System.currentTimeMillis() +
+                            TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS);
+        
                     for (SearchResponse.Appointment a : r.appointments) {
-                        if (a.alarmData != null)
+                        if (a.alarmData != null &&
+                                a.alarmData.alarmTime > alarmStartRange &&
+                                a.alarmData.alarmTime < alarmEndRange) {
                             appointments.add(new Appointment(account, a));
+                        }
                     }
                     zmtray.appointmentsFound(account, appointments);
                 }

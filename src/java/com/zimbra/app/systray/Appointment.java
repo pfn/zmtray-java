@@ -7,7 +7,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class Appointment {
-    private long snoozeTime;
     private Alarm alarm;
     private boolean dismissed;
 
@@ -17,7 +16,6 @@ public class Appointment {
         fragment = appt.fragment;
         alarmName = appt.alarmData.name;
         alarmTime = appt.alarmData.alarmTime;
-        snoozeTime = alarmTime;
         location = appt.alarmData.location;
         eventTime = appt.alarmData.eventTime;
         url = appt.organizer.url;
@@ -79,18 +77,17 @@ public class Appointment {
         return equals;
     }
 
-    public long getSnoozeTime() {
-        return snoozeTime;
-    }
-
-    public void setSnoozeTime(long time) {
-        snoozeTime = time;
-    }
-
     public void createAlarm(ZimbraTray zt) {
         alarm = new Alarm(zt);
     }
     
+    public void snoozeAlarm(long millis) {
+        if (alarm.f != null && !alarm.f.isDone())
+            alarm.f.cancel(true);
+        alarm.f = alarm.zt.getExecutor().schedule(
+                alarm, millis, TimeUnit.MILLISECONDS);
+    }
+
     public void cancelAlarm() {
         dismissed = true;
         
@@ -106,10 +103,8 @@ public class Appointment {
             long now = System.currentTimeMillis();
             if (alarmTime <= now) {
                 zt.getExecutor().submit(this);
-                System.out.println(getName() + ":alarm overdue");
             } else {
                 long delay = alarmTime - now;
-                System.out.println(getName() + ":scheduling alarm for " + delay);
                 f = zt.getExecutor().schedule(this, delay,
                         TimeUnit.MILLISECONDS);
             }

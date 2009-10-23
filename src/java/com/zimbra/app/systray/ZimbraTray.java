@@ -274,8 +274,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         for (Account a : newMessages.keySet()) {
             List<Message> msgs = newMessages.get(a);
             if (msgs != null && msgs.size() > 0) {
-                //if (newMessages.size() > 1)
-                    list.add(a.getAccountName());
+                list.add(a.getAccountName());
                 for (Message m : msgs)
                     list.add(m);
             }
@@ -330,7 +329,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         // add new appointments
         for (Appointment a : appts) {
             if (!acctappts.contains(a)) {
-                System.out.println("Adding new alarm for: " + a.getName());
                 acctappts.add(a);
                 a.createAlarm(this);
             }
@@ -342,7 +340,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         acctappts.retainAll(appts);
         removedAppointments.removeAll(acctappts);
         for (Appointment a : removedAppointments) {
-            System.out.println("Cancelling alarm for: " + a.getName());
             a.cancelAlarm();
         }
     }

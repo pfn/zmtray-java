@@ -1,23 +1,22 @@
 package com.zimbra.app.systray;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 
-import javax.swing.AbstractButton;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
-import javax.swing.JComponent;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
-import javax.swing.JRootPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -28,6 +27,24 @@ import com.sun.awt.AWTUtilities;
 
 public class AppointmentListView extends ResourceBundleForm
 implements TableCellRenderer {
+    private final static int[] SNOOZE_TIMES = {
+        1  * 60 * 1000,
+        5  * 60 * 1000,
+        10 * 60 * 1000,
+        15 * 60 * 1000,
+        30 * 60 * 1000,
+        45 * 60 * 1000,
+        1  * 60 * 60 * 1000,
+        2  * 60 * 60 * 1000,
+        3  * 60 * 60 * 1000,
+        4  * 60 * 60 * 1000,
+        6  * 60 * 60 * 1000,
+        8  * 60 * 60 * 1000,
+        10 * 60 * 60 * 1000,
+        12 * 60 * 60 * 1000,
+        24 * 60 * 60 * 1000,
+    };
+    
     private boolean rowHeightSet;
     private JPanel panel = new JPanel();
     private final HashMap<Appointment,AppointmentView> appointmentViewCache =
@@ -97,29 +114,68 @@ implements TableCellRenderer {
         layout();
     }
 
+    private String[] generateSnoozeStrings() {
+        ArrayList<String> strings = new ArrayList<String>();
+        
+        for (int time : SNOOZE_TIMES) {
+            int hours   = (int) TimeUnit.HOURS.convert(
+                    time, TimeUnit.MILLISECONDS);
+            int minutes = (int) TimeUnit.MINUTES.convert(
+                    time, TimeUnit.MILLISECONDS);
+            if (hours == 0) {
+                strings.add(format("minutes", minutes));
+            } else {
+                strings.add(format("hours", hours));
+            }
+        }
+        
+        return strings.toArray(new String[strings.size()]);
+    }
+    
     private void layout() {
         JButton snooze = new JButton();
         JButton dismiss = new JButton();
+        final JComboBox snoozeTime = new JComboBox(generateSnoozeStrings());
         
         panel.setLayout(createLayoutManager());
-        panel.add(snooze, "snoozeButton");
-        panel.add(dismiss, "dismissButton");
+        panel.add(snooze,     "snoozeButton");
+        panel.add(snoozeTime, "snoozeTimes");
+        panel.add(dismiss,    "dismissButton");
+        
+        snooze.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int idx = snoozeTime.getSelectedIndex();
+                int snooze = SNOOZE_TIMES[idx];
+                int rows = model.getRowCount();
+                for (int i = 0; i < rows; i++) {
+                    Appointment a = (Appointment) model.getValueAt(i, 0);
+                    a.snoozeAlarm(snooze);
+                }
+                for (int i = 0; i < rows; i++) {
+                    model.removeRow(0);
+                }
+                snoozeTime.requestFocusInWindow();
+                hideView();
+            }
+        });
     }
-    public static void hideView() {
-        if (INSTANCE.dlg != null && INSTANCE.dlg.isVisible()) {
-            INSTANCE.dlg.setVisible(false);
+    private void hideView() {
+        if (dlg != null && dlg.isVisible()) {
+            dlg.setVisible(false);
         }
     }
 
     private static void setWindowTranslucent() {
         try {
             Class.forName("com.sun.awt.AWTUtilities");
-            AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.85f);
+            AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
         }
         catch (ClassNotFoundException e) { } // ignore
     }
     public static void showView(ZimbraTray zt, Appointment appt) {
         
+        INSTANCE.appointmentViewCache.clear();
         if (appt != null)
             INSTANCE.model.addRow(new Object[] { appt });
         
@@ -129,10 +185,7 @@ implements TableCellRenderer {
             dlg.setAlwaysOnTop(true);
             dlg.add(INSTANCE.table);
             dlg.add(INSTANCE.panel, BorderLayout.SOUTH);
-            //dlg.setUndecorated(true);
             INSTANCE.dlg = dlg;
-            JComponent c = (JComponent) dlg.getContentPane();
-            c.setBorder(new LineBorder(Color.black));
             setWindowTranslucent();
             dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         }
@@ -145,8 +198,8 @@ implements TableCellRenderer {
         if (!dlg.isVisible() && INSTANCE.model.getRowCount() > 0) {
             Util.centerWindow(dlg);
             dlg.setVisible(true);
-            dlg.toFront();
         }
+        dlg.toFront();
         if (INSTANCE.model.getRowCount() == 0)
             dlg.setVisible(false);
     }

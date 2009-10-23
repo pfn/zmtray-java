@@ -10,6 +10,8 @@ import javax.swing.JDialog;
 import javax.swing.JList;
 import javax.swing.ListCellRenderer;
 
+import com.sun.awt.AWTUtilities;
+
 public class MessageListView implements ListCellRenderer {
     private ListCellRenderer defaultRenderer = new DefaultListCellRenderer();
     private MessageView view = new MessageView();
@@ -41,6 +43,14 @@ public class MessageListView implements ListCellRenderer {
         list.setCellRenderer(this);
         
     }
+    
+    private static void setWindowTranslucent() {
+        try {
+            Class.forName("com.sun.awt.AWTUtilities");
+            AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
+        }
+        catch (ClassNotFoundException e) { } // ignore
+    }
 
     public static void hideView() {
         if (INSTANCE.dlg != null && INSTANCE.dlg.isVisible()) {
@@ -58,9 +68,10 @@ public class MessageListView implements ListCellRenderer {
         JDialog dlg = INSTANCE.dlg;
         if (dlg == null) {
             dlg = new JDialog(zt.HIDDEN_PARENT);
+            INSTANCE.dlg = dlg;
+            setWindowTranslucent();
             dlg.setAlwaysOnTop(true);
             dlg.add(INSTANCE.list);
-            INSTANCE.dlg = dlg;
         }
         
         INSTANCE.list.setModel(model);
