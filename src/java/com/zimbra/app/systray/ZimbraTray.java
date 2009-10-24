@@ -104,6 +104,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         setupSystemTray();
         Prefs prefs = Prefs.getPrefs();
 
+        new com.zimbra.app.systray.options.OptionsDialog(this);
+
         List<String> names = prefs.getAccountNames();
 
         if (names.size() == 0) {
