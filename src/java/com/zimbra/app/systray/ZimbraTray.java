@@ -263,7 +263,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             form.show();
             if (form.isAccountCreated()) {
                 Account account = form.getAccount();
-                String name = account.getAccountName();
                 if (!account.isEnabled()) return;
                 AccountHandler handler = new AccountHandler(
                         account, ZimbraTray.this);

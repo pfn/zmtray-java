@@ -15,8 +15,9 @@ public class OptionsDialog extends ResourceBundleForm {
         tabs = new JTabbedPane();
         tabs.addTab(getString("generalTab"), new JLabel("g"));
         tabs.addTab(getString("soundsTab"), new JLabel("s"));
-        tabs.addTab(getString("accountsTab"),
-                new EditAccountForm(zt).getComponent());
+        tabs.addTab(getString("newAccountTab"),
+                new NewAccountForm(zt).getComponent());
+        tabs.addTab(getString("accountsTab"), new JLabel("accts"));
         tabs.addTab(getString("advancedTab"), new JLabel("adv"));
         JDialog d = new JDialog(zt.HIDDEN_PARENT, getString("title"));
         d.add(tabs);

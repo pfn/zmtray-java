@@ -300,9 +300,9 @@ public class AccountHandler implements Runnable {
                 zmtray.updateUnreadMessages(account, null);
             }
         } catch (SOAPFaultException e) {
-            showMessage(account.getAccountName() + " : " + 
-                    e.reason.text, "SearchRequest",
-                    JOptionPane.ERROR_MESSAGE);
+            authToken = null;
+            System.out.println(account.getAccountName() + ":" + e.reason.text +
+                    ":" + e.code.value);
         } catch (IOException e) {
             e.printStackTrace();
             showMessage(account.getAccountName() + " : " + 

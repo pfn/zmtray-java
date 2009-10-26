@@ -22,13 +22,12 @@ import javax.swing.JTextField;
 import javax.xml.soap.SOAPException;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
-import com.hanhuy.common.ui.Util;
 import com.zimbra.app.soap.SOAPFaultException;
 import com.zimbra.app.soap.SoapInterface;
 import com.zimbra.app.soap.messages.AuthRequest;
 import com.zimbra.app.soap.messages.AuthResponse;
 
-public class EditAccountForm extends ResourceBundleForm {
+public class NewAccountForm extends ResourceBundleForm {
     private JPanel panel;
     private final ZimbraTray zt;
 
@@ -39,16 +38,14 @@ public class EditAccountForm extends ResourceBundleForm {
     private JCheckBox      http   = new JCheckBox();
     private JButton        ok     = new JButton();
     private JButton        test   = new JButton();
-    private JButton        cancel = new JButton();
     
     private String serverName;
     private String accountName;
     private String username;
     private String password;
     private boolean isSSL;
-    private boolean isAccountCreated;
 
-    public EditAccountForm(ZimbraTray zt) {
+    public NewAccountForm(ZimbraTray zt) {
         this.zt = zt;
         panel = new JPanel();
         layout();
@@ -68,7 +65,6 @@ public class EditAccountForm extends ResourceBundleForm {
         panel.add(http,   "httpField");
         panel.add(test,   "testButton");
         panel.add(ok,     "okButton");
-        panel.add(cancel, "cancelButton");
         
         test.addActionListener(new TestActionListener());
         ok.addActionListener(new SaveActionListener());
@@ -103,16 +99,6 @@ public class EditAccountForm extends ResourceBundleForm {
         server.addKeyListener(nameSetterListener);
     }
     
-    public boolean isAccountCreated() {
-        return isAccountCreated;
-    }
-
-    public Account getAccount() {
-        if (!isAccountCreated)
-            return null;
-        return Prefs.getPrefs().getAccount(accountName);
-    }
-    
     private class SaveActionListener implements ActionListener {
 
         @Override
@@ -132,9 +118,12 @@ public class EditAccountForm extends ResourceBundleForm {
             account.setPassword(password);
             account.setServer(serverName);
             account.setSSL(isSSL);
-            isAccountCreated = true;
-            //dialog.setVisible(false);
-            //dialog.dispose();
+            
+            server.setText("");
+            name.setText("");
+            user.setText("");
+            pass.setText("");
+            http.setSelected(false);
         }
     }
     private class TestActionListener implements ActionListener {
@@ -146,7 +135,6 @@ public class EditAccountForm extends ResourceBundleForm {
             JOptionPane pane = new JOptionPane(
                     getString("testingMessage"),
                     JOptionPane.INFORMATION_MESSAGE);
-            pane.setOptions(new Object[] { "Cancel" });
             final JDialog dlg = pane.createDialog(zt.HIDDEN_PARENT,
                     getString("testingTitle"));
             dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
