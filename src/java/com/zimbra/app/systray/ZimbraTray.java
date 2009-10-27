@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.swing.ImageIcon;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
@@ -40,6 +41,7 @@ import com.hanhuy.common.ui.ResourceBundleForm;
 
 public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean hasSystemTray = false;
+    private boolean suppressMailAlerts = false;
     
     private TrayIcon trayicon;
     private JPopupMenu menu;
@@ -110,7 +112,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         List<String> names = prefs.getAccountNames();
 
         if (names.size() == 0) {
-            OptionsDialog d = new OptionsDialog(this);
+            OptionsDialog.showForm(this);
             names = prefs.getAccountNames();
             if (names.size() == 0) {
                 JOptionPane.showMessageDialog(HIDDEN_PARENT,
@@ -153,6 +155,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         JMenuItem item;
         menu = new JPopupMenu();
         menu.addSeparator();
+        item = new JCheckBoxMenuItem(getString("pauseMailMenu"));
+        item.addActionListener(new PauseMailMenuAction());
+        menu.add(item);
         item = new JMenuItem(getString("optionsMenu"));
         item.addActionListener(new OptionsMenuAction());
         menu.add(item);
@@ -260,9 +265,15 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         return executor;
     }
 
+    private class PauseMailMenuAction implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            JCheckBoxMenuItem item = (JCheckBoxMenuItem) e.getSource();
+            suppressMailAlerts = item.isSelected();
+        }
+    }
     private class OptionsMenuAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
-            OptionsDialog d = new OptionsDialog(ZimbraTray.this);
+            OptionsDialog.showForm(ZimbraTray.this);
 //-                Account account = form.getAccount();
 //-                if (!account.isEnabled()) return;
 //-                AccountHandler handler = new AccountHandler(
@@ -295,7 +306,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         if (messages == null)
             messages = Collections.emptyList();
         if (msgs != null) {
-            if (msgs.retainAll(messages))
+            if (msgs.retainAll(messages) && !suppressMailAlerts)
                 showNewMessages();
         }
         String name = account.getAccountName();
@@ -319,7 +330,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             item.setText(format("accountMessageCount",
                     account.getAccountName(), msgs.size()));
         }
-        showNewMessages();
+        if (!suppressMailAlerts)
+            showNewMessages();
         updateTrayIcon();
     }
 

@@ -43,9 +43,22 @@ public class AccountsForm extends ResourceBundleForm {
     private void layout() {
         panel.setLayout(createLayoutManager());
 
-        panel.add(pane, "accountList");
+        panel.add(pane,   "accountList");
         panel.add(delete, "deleteButton");
-        panel.add(edit, "editButton");
+        panel.add(edit,   "editButton");
+        
+        edit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                
+            }
+        });
+        delete.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                
+            }
+        });
     }
 
     public static void reset() {
