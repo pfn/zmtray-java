@@ -1,12 +1,20 @@
 package com.zimbra.app.systray.options;
 
+import java.io.IOException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.awt.Component;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
+import javax.swing.JCheckBox;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import javax.swing.JFileChooser;
@@ -19,8 +27,9 @@ import com.hanhuy.common.ui.ResourceBundleForm;
 
 public class SoundsOptionsForm extends ResourceBundleForm {
 
+    private volatile Clip audioClip;
     private final static String APPT_ACTION = "appointment";
-    private final static String MSG_ACTION = "message";
+    private final static String MSG_ACTION  = "message";
 
     private JPanel panel = new JPanel();
 
@@ -32,6 +41,9 @@ public class SoundsOptionsForm extends ResourceBundleForm {
     private JButton appointmentSoundPlay    = new JButton();
     private JButton messageSoundStop        = new JButton();
     private JButton appointmentSoundStop    = new JButton();
+
+    private JCheckBox disableSounds         = new JCheckBox();
+
     public SoundsOptionsForm(ZimbraTray zt) {
         layout();
     }
@@ -55,6 +67,8 @@ public class SoundsOptionsForm extends ResourceBundleForm {
         panel.add(appointmentSoundBrowse, "appointmentSoundBrowse");
         panel.add(appointmentSoundPlay,   "appointmentSoundPlay");
         panel.add(appointmentSoundStop,   "appointmentSoundStop");
+
+        panel.add(disableSounds, "disableSounds");
 
         ActionListener browseListener = new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -81,10 +95,76 @@ public class SoundsOptionsForm extends ResourceBundleForm {
                 }
             }
         };
+        ActionListener playListener = new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                String cmd = e.getActionCommand();
+                JTextField input;
+                if (APPT_ACTION.equals(cmd)) {
+                    input = appointmentSoundText;
+                } else if (MSG_ACTION.equals(cmd)) {
+                    input = messageSoundText;
+                } else {
+                    return;
+                }
+                String file = input.getText();
+                playClip(file);
+            }
+        };
+        ActionListener stopListener = new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                stopClip();
+            }
+        };
+        messageSoundPlay.setActionCommand(MSG_ACTION);
+        messageSoundPlay.addActionListener(playListener);
+        appointmentSoundPlay.setActionCommand(APPT_ACTION);
+        appointmentSoundPlay.addActionListener(playListener);
+        messageSoundStop.addActionListener(stopListener);
+        appointmentSoundStop.addActionListener(stopListener);
         messageSoundBrowse.setActionCommand(MSG_ACTION);
         messageSoundBrowse.addActionListener(browseListener);
         appointmentSoundBrowse.setActionCommand(APPT_ACTION);
         appointmentSoundBrowse.addActionListener(browseListener);
+    }
+
+    private void stopClip() {
+        if (audioClip != null) {
+            if (audioClip.isRunning())
+                audioClip.stop();
+            audioClip = null;
+        }
+    }
+
+    private void playClip(String name) {
+        if (name == null || "".equals(name.trim()))
+            return;
+        if (audioClip != null)
+            stopClip();
+
+        FileInputStream fin = null;
+        try {
+            File f = new File(name);
+            fin = new FileInputStream(f);
+            AudioInputStream ain = AudioSystem.getAudioInputStream(fin);
+            audioClip = AudioSystem.getClip();
+            audioClip.open(ain);
+            audioClip.start();
+        }
+        catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        catch (UnsupportedAudioFileException e) {
+            throw new IllegalStateException(e);
+        }
+        catch (LineUnavailableException e) {
+            throw new IllegalStateException(e);
+        }
+        finally {
+            try {
+                if (fin != null)
+                    fin.close();
+            } catch (IOException e) { }
+        }
     }
 
     public Component getComponent() {
