@@ -1,5 +1,7 @@
 package com.zimbra.app.systray;
 
+import com.zimbra.app.systray.options.OptionsDialog;
+
 import java.awt.AWTException;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -104,14 +106,11 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         setupSystemTray();
         Prefs prefs = Prefs.getPrefs();
 
-        new com.zimbra.app.systray.options.OptionsDialog(this);
 
         List<String> names = prefs.getAccountNames();
 
         if (names.size() == 0) {
-            // show configuration/add accounts dialog
-            NewAccountForm form = new NewAccountForm(this);
-            form.show();
+            OptionsDialog d = new OptionsDialog(this);
             names = prefs.getAccountNames();
             if (names.size() == 0) {
                 JOptionPane.showMessageDialog(HIDDEN_PARENT,
@@ -155,7 +154,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         menu = new JPopupMenu();
         menu.addSeparator();
         item = new JMenuItem(getString("optionsMenu"));
-        item.addActionListener(new NewAccountMenuAction());
+        item.addActionListener(new OptionsMenuAction());
         menu.add(item);
         menu.addSeparator();
         item = new JMenuItem(getString("exitMenu"));
@@ -261,18 +260,15 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         return executor;
     }
 
-    private class NewAccountMenuAction implements ActionListener {
+    private class OptionsMenuAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
-            NewAccountForm form = new NewAccountForm(ZimbraTray.this);
-            form.show();
-            if (form.isAccountCreated()) {
-                Account account = form.getAccount();
-                if (!account.isEnabled()) return;
-                AccountHandler handler = new AccountHandler(
-                        account, ZimbraTray.this);
-                accountHandlerMap.put(account.getId(), handler);
-                addAccountToTray(account);
-            }
+            OptionsDialog d = new OptionsDialog(ZimbraTray.this);
+//-                Account account = form.getAccount();
+//-                if (!account.isEnabled()) return;
+//-                AccountHandler handler = new AccountHandler(
+//-                        account, ZimbraTray.this);
+//-                accountHandlerMap.put(account.getId(), handler);
+//-                addAccountToTray(account);
         }
     }
 

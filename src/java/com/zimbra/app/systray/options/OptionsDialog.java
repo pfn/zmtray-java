@@ -11,6 +11,7 @@ import javax.swing.JTabbedPane;
 
 public class OptionsDialog extends ResourceBundleForm {
     private JTabbedPane tabs;
+    // TODO stop using constructor to show options dialog
     public OptionsDialog(ZimbraTray zt) {
         tabs = new JTabbedPane();
         tabs.addTab(getString("generalTab"), 

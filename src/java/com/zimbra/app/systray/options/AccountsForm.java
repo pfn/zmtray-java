@@ -43,7 +43,6 @@ public class AccountsForm extends ResourceBundleForm {
     private void layout() {
         panel.setLayout(createLayoutManager());
 
-        list.setVisibleRowCount(10);
         panel.add(pane, "accountList");
         panel.add(delete, "deleteButton");
         panel.add(edit, "editButton");
