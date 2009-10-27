@@ -73,13 +73,14 @@ public class MessageListView implements ListCellRenderer {
             setWindowTranslucent();
             dlg.setAlwaysOnTop(true);
             dlg.add(INSTANCE.list);
+            dlg.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
         }
         
         INSTANCE.list.setModel(model);
         
         dlg.pack();
-        dlg.setVisible(true);
+        if (!dlg.isVisible())
+            dlg.setVisible(true);
         dlg.toFront();
-        dlg.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
     }
 }

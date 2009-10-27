@@ -352,11 +352,12 @@ public class AccountHandler implements Runnable {
         }
         
         if (authToken != null) {
-            while (account.getSubscribedCalendarNames().size() == 0 ||
+            if (account.getSubscribedCalendarNames().size() == 0 ||
                     account.getSubscribedMailFolders().size() == 0) {
                 // TODO implement folder selection
                 JOptionPane.showMessageDialog(zmtray.HIDDEN_PARENT,
                         "At least one calendar and mail folder must be selected");
+                return;
             }
         
 System.out.println(account.getAccountName() + ": searching for new items");
@@ -433,6 +434,7 @@ System.out.println(account.getAccountName() + ": searching for new items");
     }
 
     public void shutdown() {
+        System.out.println(account.getAccountName() + ": shutting down poller");
         shutdown = true;
         if (!f.isDone()) {
             f.cancel(false);
@@ -440,7 +442,7 @@ System.out.println(account.getAccountName() + ": searching for new items");
     }
     
     public void pollNow() {
-        if (isRunning)
+        if (isRunning || shutdown)
             return;
         if (f.getDelay(TimeUnit.SECONDS) > 1) {
             f.cancel(true);
@@ -450,5 +452,21 @@ System.out.println(account.getAccountName() + ": searching for new items");
 
     public static Account getCurrentAccount() {
         return currentAccount.get();
+    }
+
+    public List<String> getAvailableMailFolders() {
+        ArrayList<String> l = new ArrayList<String>();
+        for (GetFolderResponse.Folder f : mailFolders) {
+            l.add(f.name);
+        }
+        return l;
+    }
+
+    public List<String> getAvailableCalendars() {
+        ArrayList<String> l = new ArrayList<String>();
+        for (GetFolderResponse.Folder f : calendars) {
+            l.add(f.name);
+        }
+        return l;
     }
 }

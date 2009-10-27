@@ -75,6 +75,16 @@ public class Prefs {
         }
     }
 
+    public void removeAccount(Account acct) {
+        Preferences accounts = prefs.node(ACCOUNTS_KEY);
+        try {
+            accounts.node(acct.getId()).removeNode();
+        }
+        catch (BackingStoreException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     public Account createAccount(String name) {
         String id = UUID.randomUUID().toString();
         Preferences accounts = prefs.node(ACCOUNTS_KEY);

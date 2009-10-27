@@ -228,6 +228,7 @@ implements TableCellRenderer {
         dlg.pack();
         if (!dlg.isVisible() && INSTANCE.model.getRowCount() > 0) {
             Util.centerWindow(dlg);
+            zt.playSound(Prefs.getPrefs().getAppointmentSound());
             dlg.setVisible(true);
         }
         dlg.toFront();

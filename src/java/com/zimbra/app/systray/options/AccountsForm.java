@@ -1,20 +1,24 @@
 package com.zimbra.app.systray.options;
 
-import com.zimbra.app.systray.Prefs;
-
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
 import javax.swing.JPanel;
 import javax.swing.JList;
+import javax.swing.ListSelectionModel;
 import javax.swing.JButton;
 import javax.swing.DefaultListModel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.JOptionPane;
 
 import com.zimbra.app.systray.ZimbraTray;
+import com.zimbra.app.systray.Prefs;
+import com.zimbra.app.systray.Account;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
 
@@ -47,16 +51,35 @@ public class AccountsForm extends ResourceBundleForm {
         panel.add(delete, "deleteButton");
         panel.add(edit,   "editButton");
         
+        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        delete.setEnabled(false);
+        edit.setEnabled(false);
+        list.addListSelectionListener(new ListSelectionListener() {
+            public void valueChanged(ListSelectionEvent e) {
+                boolean selected = list.getSelectedIndex() != -1;
+                delete.setEnabled(selected);
+                edit.setEnabled(selected);
+            }
+        });
         edit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                
+                // TODO implement account edit
             }
         });
         delete.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                
+                int r = JOptionPane.showConfirmDialog(panel,
+                        getString("deleteAccountConfirm"),
+                        getString("deleteAccountTitle"),
+                        JOptionPane.WARNING_MESSAGE);
+                if (r == JOptionPane.YES_OPTION) {
+                    String name = (String) list.getSelectedValue();
+                    model.removeElement(name);
+                    Account a = Prefs.getPrefs().getAccount(name);
+                    zt.removeAccount(a);
+                }
             }
         });
     }

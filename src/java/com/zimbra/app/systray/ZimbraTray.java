@@ -15,6 +15,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyEditorManager;
 import java.io.IOException;
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,12 +35,18 @@ import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 
 import com.hanhuy.common.ui.DimensionEditor;
 import com.hanhuy.common.ui.FontEditor;
 import com.hanhuy.common.ui.IntEditor;
 import com.hanhuy.common.ui.PointEditor;
 import com.hanhuy.common.ui.ResourceBundleForm;
+import com.hanhuy.common.ui.ConsoleViewer;
 
 public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean hasSystemTray = false;
@@ -71,15 +79,18 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private final OpenClientAction openClientAction = new OpenClientAction();
     
     public static void main(String[] args) throws Exception {
+        final ZimbraTray zt = new ZimbraTray();
         Thread.setDefaultUncaughtExceptionHandler(
                 new Thread.UncaughtExceptionHandler() {
             public void uncaughtException(Thread thread, Throwable t) {
                 System.err.println(t.getClass().getName() + ": " +
                         thread.getName());
                 t.printStackTrace();
+                new ConsoleViewer(zt.HIDDEN_PARENT);
             }
         });
-        ZimbraTray zt = new ZimbraTray();
+        System.setOut(ConsoleViewer.OUT);
+        System.setErr(ConsoleViewer.OUT);
         initSSL(zt);
         PropertyEditorManager.registerEditor(Font.class, FontEditor.class);
         PropertyEditorManager.registerEditor(Dimension.class,
@@ -113,7 +124,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         List<String> names = prefs.getAccountNames();
 
         if (names.size() == 0) {
-            OptionsDialog.showForm(this);
+            OptionsDialog.showNewAccountForm(this);
             names = prefs.getAccountNames();
             if (names.size() == 0) {
                 JOptionPane.showMessageDialog(HIDDEN_PARENT,
@@ -169,6 +180,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         
         trayicon = new TrayIcon(NORMAL_ICON.getImage(), this);
         trayicon.setJPopupMenu(menu);
+        trayicon.setToolTip(getString("defaultToolTip"));
         trayicon.setImageAutoSize(true);
         try {
             tray.add(trayicon);
@@ -189,10 +201,21 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         accountMenuMap.put(acct.getId(), item);
     }
     
-    //private void removeAccountFromTray(Account acct) {
-    //    if (!hasSystemTray)
-    //        return;
-    //}
+    /**
+     * deletes the account
+     */
+    public void removeAccount(Account acct) {
+        updateUnreadMessages(acct, null);
+        Prefs.getPrefs().removeAccount(acct);
+        AccountHandler h = accountHandlerMap.remove(acct.getId());
+        h.shutdown();
+        removeAccountFromTray(acct);
+    }
+    public void removeAccountFromTray(Account acct) {
+        if (!hasSystemTray)
+            return;
+        menu.remove(accountMenuMap.get(acct.getId()));
+    }
     
     public void setTrayIcon(Image icon) {
         if (!hasSystemTray)
@@ -331,8 +354,11 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             item.setText(format("accountMessageCount",
                     account.getAccountName(), msgs.size()));
         }
-        if (!suppressMailAlerts)
+        if (!suppressMailAlerts) {
+            playSound(Prefs.getPrefs().getMessageSound());
             showNewMessages();
+        }
+
         updateTrayIcon();
     }
 
@@ -403,5 +429,32 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
         if (!hasNew)
             MessageListView.hideView();
+    }
+
+    public void playSound(String name) {
+        if (Prefs.getPrefs().isSoundDisabled() ||
+                name == null || "".equals(name.trim()))
+            return;
+        FileInputStream fin = null;
+        try {
+            File f = new File(name);
+            fin = new FileInputStream(f);
+            AudioInputStream ain = AudioSystem.getAudioInputStream(fin);
+            Clip audioClip = AudioSystem.getClip();
+            audioClip.open(ain);
+            audioClip.start();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        catch (UnsupportedAudioFileException e) {
+            e.printStackTrace();
+        }
+        catch (LineUnavailableException e) {
+            e.printStackTrace();
+        }
+        finally {
+            try { if (fin != null) fin.close(); } catch (IOException e2) { }
+        }
     }
 }

@@ -37,4 +37,15 @@ public class OptionsDialog extends ResourceBundleForm {
         Util.centerWindow(INSTANCE.dlg);
         INSTANCE.dlg.setVisible(true);
     }
+
+    public static void showNewAccountForm(ZimbraTray zt) {
+        if (INSTANCE == null)
+            INSTANCE = new OptionsDialog(zt);
+        INSTANCE.tabs.setSelectedIndex(
+                INSTANCE.tabs.indexOfTab(INSTANCE.getString("newAccountTab")));
+        Util.centerWindow(INSTANCE.dlg);
+        INSTANCE.dlg.setModal(true);
+        INSTANCE.dlg.setVisible(true);
+        INSTANCE.dlg.setModal(false);
+    }
 }
