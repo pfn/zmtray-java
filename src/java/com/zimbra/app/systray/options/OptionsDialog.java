@@ -13,12 +13,15 @@ public class OptionsDialog extends ResourceBundleForm {
     private JTabbedPane tabs;
     public OptionsDialog(ZimbraTray zt) {
         tabs = new JTabbedPane();
-        tabs.addTab(getString("generalTab"), new JLabel("g"));
-        tabs.addTab(getString("soundsTab"), new JLabel("s"));
+        tabs.addTab(getString("generalTab"), 
+                new GeneralOptionsForm(zt).getComponent());
+        tabs.addTab(getString("soundsTab"), 
+                new SoundsOptionsForm(zt).getComponent());
         tabs.addTab(getString("newAccountTab"),
                 new NewAccountForm(zt).getComponent());
         tabs.addTab(getString("accountsTab"), new JLabel("accts"));
-        tabs.addTab(getString("advancedTab"), new JLabel("adv"));
+        tabs.addTab(getString("advancedTab"), 
+                new AdvancedOptionsForm(zt).getComponent());
         JDialog d = new JDialog(zt.HIDDEN_PARENT, getString("title"));
         d.add(tabs);
         d.pack();

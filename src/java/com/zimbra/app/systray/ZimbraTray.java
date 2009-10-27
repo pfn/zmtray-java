@@ -112,9 +112,13 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             // show configuration/add accounts dialog
             NewAccountForm form = new NewAccountForm(this);
             form.show();
-            if (!form.isAccountCreated())
-                System.exit(0);
             names = prefs.getAccountNames();
+            if (names.size() == 0) {
+                JOptionPane.showMessageDialog(HIDDEN_PARENT,
+                        getString("noAccountCreated"),
+                        getString("errorString"), JOptionPane.ERROR_MESSAGE);
+                System.exit(0);
+            }
         }
         // perform logins and start polling
         for (String name : names) {

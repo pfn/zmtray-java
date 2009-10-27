@@ -107,7 +107,7 @@ public class NewAccountForm extends ResourceBundleForm {
                 return;
             Account account = Prefs.getPrefs().getAccount(accountName);
             if (account != null) {
-                JOptionPane.showMessageDialog(zt.HIDDEN_PARENT,
+                JOptionPane.showMessageDialog(panel,
                         format("accountExistsError", accountName),
                         getString("errorString"), JOptionPane.ERROR_MESSAGE);
                 return;
@@ -118,6 +118,11 @@ public class NewAccountForm extends ResourceBundleForm {
             account.setPassword(password);
             account.setServer(serverName);
             account.setSSL(isSSL);
+
+            JOptionPane.showMessageDialog(panel,
+                    format("accountCreated", accountName),
+                    getString("successString"),
+                    JOptionPane.INFORMATION_MESSAGE);
             
             server.setText("");
             name.setText("");
@@ -213,7 +218,7 @@ public class NewAccountForm extends ResourceBundleForm {
         if (password == null || password.trim().equals(""))
             error = getString("passwordEmptyError");
         if (error != null) {
-            JOptionPane.showMessageDialog(zt.HIDDEN_PARENT,
+            JOptionPane.showMessageDialog(panel,
                     error, getString("errorString"), JOptionPane.ERROR_MESSAGE);
             return false;
         }
