@@ -42,7 +42,6 @@ public class Account {
     private final static String CALENDARS_KEY = "calendars";
     private final static String ICON_KEY      = "icon";
     public  final static String NAME_KEY      = "name";
-    private final static String SOUND_KEY     = "sound";
     private final static String PASS_KEY      = "password";
     private final static String SALT_KEY      = "salt";
     private final static String USER_KEY      = "login";
@@ -211,14 +210,6 @@ public class Account {
     
     public void setIconName(String name) {
     	prefs.put(ICON_KEY, name);
-    }
-    
-    public String getSoundName() {
-    	return prefs.get(SOUND_KEY, null);
-    }
-    
-    public void setSoundName(String name) {
-    	prefs.put(SOUND_KEY, name);
     }
     
     public boolean isEnabled() {

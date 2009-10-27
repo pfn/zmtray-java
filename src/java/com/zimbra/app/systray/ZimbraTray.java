@@ -1,5 +1,6 @@
 package com.zimbra.app.systray;
 
+import com.zimbra.app.soap.SoapInterface;
 import com.zimbra.app.systray.options.OptionsDialog;
 
 import java.awt.AWTException;
@@ -107,7 +108,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     public void run() {
         setupSystemTray();
         Prefs prefs = Prefs.getPrefs();
-
+        SoapInterface.setDebug(prefs.getSoapDebug());
 
         List<String> names = prefs.getAccountNames();
 

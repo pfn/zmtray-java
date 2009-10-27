@@ -14,12 +14,22 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class Prefs {
 
+    public enum ScreenLocation {
+        TOP_LEFT, TOP_RIGHT, CENTER, BOTTOM_RIGHT, BOTTOM_LEFT
+    }
+    
     private final static String SYMMETRIC_ALGORITHM = "AES";
     
-    private final static String ACCOUNTS_KEY = "accounts";
-    private final static String SECRET_KEY   = "secret";
-    private final static String PORT_KEY     = "localPort";
-    private final static String IPC_KEY      = "ipckey";
+    private final static String SOAP_DEBUG_KEY      = "soapDebug";
+    private final static String ACCOUNTS_KEY        = "accounts";
+    private final static String SECRET_KEY          = "secret";
+    private final static String PORT_KEY            = "localPort";
+    private final static String IPC_KEY             = "ipckey";
+    private final static String APPT_SOUND_KEY      = "apptSound";
+    private final static String MSG_SOUND_KEY       = "msgSound";
+    private final static String DISABLED_SOUND_KEY  = "soundsDisabled";
+    private final static String APPT_LOCATION_KEY   = "apptLocation";
+    private final static String MSG_LOCATION_KEY    = "msgLocation";
     private final static Prefs INSTANCE;
     private final SecretKey key;
     private final Cipher cipher;
@@ -103,5 +113,57 @@ public class Prefs {
     
     public void setIPCKey(String key) {
         prefs.put(IPC_KEY, key);
+    }
+    
+    public void setAppointmentSound(String file) {
+        prefs.put(APPT_SOUND_KEY, file);
+    }
+    
+    public String getAppointmentSound() {
+        return prefs.get(APPT_SOUND_KEY, null);
+    }
+    
+    public void setMessageSound(String file) {
+        prefs.put(MSG_SOUND_KEY, file);
+    }
+    
+    public String getMessageSound() {
+        return prefs.get(MSG_SOUND_KEY, null);
+    }
+    
+    public void setSoundDisabled(boolean b) {
+        prefs.putBoolean(DISABLED_SOUND_KEY, b);
+    }
+    
+    public boolean isSoundDisabled() {
+        return prefs.getBoolean(DISABLED_SOUND_KEY, false);
+    }
+    
+    public void setSoapDebug(boolean b) {
+        prefs.putBoolean(SOAP_DEBUG_KEY, b);
+    }
+    
+    public boolean getSoapDebug() {
+        return prefs.getBoolean(SOAP_DEBUG_KEY, false);
+    }
+    
+    public void setAppointmentAlertLocation(ScreenLocation l) {
+        prefs.putInt(APPT_LOCATION_KEY, l.ordinal());
+    }
+    
+    public ScreenLocation getAppointmentAlertLocation() {
+        int i = prefs.getInt(
+                APPT_LOCATION_KEY, ScreenLocation.CENTER.ordinal());
+        return ScreenLocation.values()[i];
+    }
+    
+    public void setMessageAlertLocation(ScreenLocation l) {
+        prefs.putInt(MSG_LOCATION_KEY, l.ordinal());
+    }
+    
+    public ScreenLocation getMessageAlertLocation() {
+        int i = prefs.getInt(
+                MSG_LOCATION_KEY, ScreenLocation.BOTTOM_RIGHT.ordinal());
+        return ScreenLocation.values()[i];
     }
 }

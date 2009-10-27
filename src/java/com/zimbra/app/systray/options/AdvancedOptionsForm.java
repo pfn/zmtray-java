@@ -8,6 +8,8 @@ import javax.swing.JPanel;
 import javax.swing.JCheckBox;
 import javax.swing.JButton;
 
+import com.zimbra.app.soap.SoapInterface;
+import com.zimbra.app.systray.Prefs;
 import com.zimbra.app.systray.ZimbraTray;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
@@ -32,6 +34,14 @@ public class AdvancedOptionsForm extends ResourceBundleForm {
         panel.add(soapDebug,         "soapDebug");
         panel.add(showConsoleButton, "showConsoleButton");
 
+        soapDebug.setSelected(Prefs.getPrefs().getSoapDebug());
+        soapDebug.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                boolean debug = soapDebug.isSelected();
+                Prefs.getPrefs().setSoapDebug(debug);
+                SoapInterface.setDebug(debug);
+            }
+        });
         showConsoleButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 new ConsoleViewer(zt.HIDDEN_PARENT);

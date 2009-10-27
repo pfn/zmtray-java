@@ -14,7 +14,7 @@ import javax.xml.soap.SOAPException;
 import com.zimbra.app.soap.messages.ContextHeader;
 
 public class SoapInterface {
-    private final static boolean DEBUG = false;
+    private static boolean DEBUG = false;
     private final static MessageFactory factory;
     private final static ThreadLocal<URL> currentURL = new ThreadLocal<URL>();
     static {
@@ -94,5 +94,13 @@ public class SoapInterface {
     
     public static URL getCurrentServiceTarget() {
         return currentURL.get();
+    }
+    
+    public static boolean getDebug() {
+        return DEBUG;
+    }
+    
+    public static void setDebug(boolean debug) {
+        DEBUG = debug;
     }
 }

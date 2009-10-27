@@ -20,6 +20,7 @@ import javax.swing.JTextField;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import com.zimbra.app.systray.Prefs;
 import com.zimbra.app.systray.ZimbraTray;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
@@ -85,12 +86,13 @@ public class SoundsOptionsForm extends ResourceBundleForm {
                 chooser.setFileFilter(f);
                 int r = chooser.showOpenDialog(panel);
                 if (r == JFileChooser.APPROVE_OPTION) {
+                    String filename = chooser.getSelectedFile().getPath();
                     if (APPT_ACTION.equals(cmd)) {
-                        appointmentSoundText.setText(
-                                chooser.getSelectedFile().getPath());
+                        appointmentSoundText.setText(filename);
+                        Prefs.getPrefs().setAppointmentSound(filename);
                     } else if (MSG_ACTION.equals(cmd)) {
-                        messageSoundText.setText(
-                                chooser.getSelectedFile().getPath());
+                        messageSoundText.setText(filename);
+                        Prefs.getPrefs().setMessageSound(filename);
                     }
                 }
             }
@@ -125,6 +127,20 @@ public class SoundsOptionsForm extends ResourceBundleForm {
         messageSoundBrowse.addActionListener(browseListener);
         appointmentSoundBrowse.setActionCommand(APPT_ACTION);
         appointmentSoundBrowse.addActionListener(browseListener);
+        
+        String apptSound = Prefs.getPrefs().getAppointmentSound();
+        String msgSound = Prefs.getPrefs().getMessageSound();
+        if (apptSound != null && !"".equals(apptSound.trim()))
+            appointmentSoundText.setText(apptSound);
+        if (msgSound != null && !"".equals(msgSound.trim()))
+            messageSoundText.setText(msgSound);
+        
+        disableSounds.setSelected(Prefs.getPrefs().isSoundDisabled());
+        disableSounds.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                Prefs.getPrefs().setSoundDisabled(disableSounds.isSelected());
+            }
+        });
     }
 
     private void stopClip() {
