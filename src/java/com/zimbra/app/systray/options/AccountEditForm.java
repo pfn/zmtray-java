@@ -6,6 +6,8 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.swing.JPanel;
 import javax.swing.JCheckBox;
@@ -68,14 +70,21 @@ public class AccountEditForm extends ResourceBundleForm {
         panel.add(user,         "userField");
         panel.add(pass,         "passField");
         panel.add(http,         "httpField");
-        //panel.add(folderPane,   "folderList");
-        //panel.add(calendarPane, "calendarList");
+        panel.add(folderPane,   "folderList");
+        panel.add(calendarPane, "calendarList");
         panel.add(back,         "backButton");
         panel.add(save,         "saveButton");
 
         back.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 af.show(AccountsForm.ACCOUNT_LIST_CARD);
+            }
+        });
+        save.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (verifySettings()) {
+                    af.show(AccountsForm.ACCOUNT_LIST_CARD);
+                }
             }
         });
     }
@@ -91,19 +100,94 @@ public class AccountEditForm extends ResourceBundleForm {
          if (enabled) {
              AccountHandler ah = zt.getAccountHandlerBy(account);
              DefaultListModel folderModel = new DefaultListModel();
+             List<String> subscribedFolders =
+                     account.getSubscribedMailFolders();
+             int index = 0;
+             ArrayList<Integer> indices = new ArrayList<Integer>();
              for (String folder : ah.getAvailableMailFolders()) {
                  folderModel.addElement(folder);
+                 if (subscribedFolders.contains(folder))
+                     indices.add(index);
+                 index++;
              }
              folderList.setModel(folderModel);
+             int[] indexAry = new int[indices.size()];
+             for (int i = 0; i < indices.size(); i++) {
+                 indexAry[i] = indices.get(i);
+             }
+             folderList.setSelectedIndices(indexAry);
              DefaultListModel calendarModel = new DefaultListModel();
+             List<String> subscribedCalendars =
+                     account.getSubscribedCalendarNames();
+
+             indices.clear();
+             index = 0;
              for (String calendar : ah.getAvailableCalendars()) {
                  calendarModel.addElement(calendar);
+                 if (subscribedCalendars.contains(calendar))
+                     indices.add(index);
+                 index++;
+             }
+             indexAry = new int[indices.size()];
+             for (int i = 0; i < indices.size(); i++) {
+                 indexAry[i] = indices.get(i);
              }
              calendarList.setModel(calendarModel);
+             calendarList.setSelectedIndices(indexAry);
+             setComponentsVisible(new String[] {
+                     "folderList", "calendarList",
+                     "$label.folder", "$label.calendar" }, true);
+         } else {
+             setComponentsVisible(new String[] {
+                     "folderList", "calendarList",
+                     "$label.folder", "$label.calendar" }, false);
          }
     }
 
     public Component getComponent() {
         return panel;
+    }
+
+    private void setComponentsVisible(String[] names, boolean b) {
+        HashMap<String,Component> cmap = new HashMap<String,Component>();
+        Component[] comps = panel.getComponents();
+        for (Component c : comps)
+            cmap.put(c.getName(), c);
+        for (String name : names) {
+            Component c = cmap.get(name);
+            if (c != null)
+                c.setVisible(b);
+        }
+        panel.invalidate();
+    }
+
+    private boolean verifySettings() {
+        String accountName = name.getText();
+        String serverName = server.getText();
+        String username = user.getText();
+        String password = new String(pass.getPassword());
+        boolean isSSL = !http.isSelected();
+        int[] selectedFolders = folderList.getSelectedIndices();
+        int[] selectedCalendars = calendarList.getSelectedIndices();
+
+        String error = null;
+        if (accountName == null || accountName.trim().equals(""))
+            error = getString("accountNameEmptyError");
+        if (serverName == null || serverName.trim().equals(""))
+            error = getString("serverNameEmptyError");
+        if (username == null || username.trim().equals(""))
+            error = getString("usernameEmptyError");
+        if (password == null || password.trim().equals(""))
+            error = getString("passwordEmptyError");
+        if (selectedFolders.length == 0)
+            error = getString("noFolderSelectedError");
+        if (selectedCalendars.length == 0)
+            error = getString("noCalendarSelectedError");
+        if (error != null) {
+            JOptionPane.showMessageDialog(panel,
+                    error, getString("errorString"), JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
     }
 }
