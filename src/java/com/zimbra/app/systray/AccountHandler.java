@@ -354,7 +354,6 @@ public class AccountHandler implements Runnable {
         if (authToken != null) {
             if (account.getSubscribedCalendarNames().size() == 0 ||
                     account.getSubscribedMailFolders().size() == 0) {
-                // TODO implement folder selection
                 JOptionPane.showMessageDialog(zmtray.HIDDEN_PARENT,
                         "At least one calendar and mail folder must be selected");
                 return;

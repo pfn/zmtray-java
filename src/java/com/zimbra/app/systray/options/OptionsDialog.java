@@ -13,7 +13,6 @@ public class OptionsDialog extends ResourceBundleForm {
     private JDialog dlg;
     
     private static OptionsDialog INSTANCE;
-    // TODO stop using constructor to show options dialog
     private OptionsDialog(ZimbraTray zt) {
         tabs = new JTabbedPane();
         tabs.addTab(getString("generalTab"), 

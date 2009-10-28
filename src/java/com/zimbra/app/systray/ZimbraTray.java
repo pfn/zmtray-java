@@ -70,7 +70,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private HashMap<Account,Set<Appointment>> appointments =
             new HashMap<Account,Set<Appointment>>();
 
-    // TODO tune this value, or make adjustable
     private final static int THREAD_POOL_SIZE = 5;
     
     private ScheduledExecutorService executor =

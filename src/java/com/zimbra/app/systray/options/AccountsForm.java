@@ -77,7 +77,6 @@ public class AccountsForm extends ResourceBundleForm {
         edit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // TODO implement account edit
                 String name = (String) accountList.getSelectedValue();
                 aef.setAccount(Prefs.getPrefs().getAccount(name));
                 show(ACCOUNT_EDIT_CARD);

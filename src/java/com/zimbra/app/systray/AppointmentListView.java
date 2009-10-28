@@ -201,6 +201,9 @@ implements TableCellRenderer {
         }
         catch (ClassNotFoundException e) { } // ignore
     }
+    
+    // TODO animate window appearance (fade-in or slide depending on location)
+    // TODO honor screen location preference
     public static synchronized void showView(ZimbraTray zt, Appointment appt) {
         
         if (zt != null)

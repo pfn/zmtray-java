@@ -59,6 +59,9 @@ public class MessageListView implements ListCellRenderer {
     }
 
     // TODO allow dismissing new messages by clicking on them
+    // TODO allow scrolling of messages if unread is longer than a set size
+    // TODO honor screen location pref
+    // TODO add animation
     public static synchronized void showView(ZimbraTray zt, List<?> items) {
         INSTANCE.view.resetPreferredWidth();
         
