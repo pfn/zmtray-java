@@ -1,29 +1,26 @@
 package com.zimbra.app.systray.options;
 
 import java.awt.CardLayout;
-import java.awt.LayoutManager;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 
-import javax.swing.event.ListSelectionListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.JPanel;
-import javax.swing.JList;
-import javax.swing.ListSelectionModel;
-import javax.swing.JButton;
 import javax.swing.DefaultListModel;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
+import javax.swing.JButton;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
-
-import com.zimbra.app.systray.ZimbraTray;
-import com.zimbra.app.systray.Prefs;
-import com.zimbra.app.systray.Account;
-import com.zimbra.app.systray.AccountHandler;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
+import com.zimbra.app.systray.Account;
+import com.zimbra.app.systray.Prefs;
+import com.zimbra.app.systray.ZimbraTray;
 
 
 public class AccountsForm extends ResourceBundleForm {

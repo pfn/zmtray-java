@@ -141,13 +141,17 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             }
         }
         // perform logins and start polling
+        int runningAccounts = 0;
         for (String name : names) {
             Account account = prefs.getAccount(name);
             if (!account.isEnabled()) continue;
             AccountHandler handler = new AccountHandler(account, this);
             accountHandlerMap.put(account.getId(), handler);
             addAccountToTray(account);
+            runningAccounts++;
         }
+        if (runningAccounts == 0)
+            OptionsDialog.showForm(this);
     }
     
     private void checkIfRunning() {
@@ -218,6 +222,23 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         h.shutdown();
         removeAccountFromTray(acct);
     }
+    
+    public void startNewAccount(Account account) {
+        if (showingNewAccountForm) return;
+        if (!account.isEnabled()) return;
+        AccountHandler handler = new AccountHandler(
+                account, ZimbraTray.this);
+        accountHandlerMap.put(account.getId(), handler);
+        addAccountToTray(account);
+    }
+
+    public void resetAccount(Account acct) {
+        AccountHandler h = accountHandlerMap.remove(acct.getId());
+        h.shutdown();
+        removeAccountFromTray(acct);
+        startNewAccount(Prefs.getPrefs().getAccount(acct.getAccountName()));
+    }
+    
     public void removeAccountFromTray(Account acct) {
         if (!hasSystemTray)
             return;
@@ -306,15 +327,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         public void actionPerformed(ActionEvent e) {
             OptionsDialog.showForm(ZimbraTray.this);
         }
-    }
-
-    public void startNewAccount(Account account) {
-        if (showingNewAccountForm) return;
-        if (!account.isEnabled()) return;
-        AccountHandler handler = new AccountHandler(
-                account, ZimbraTray.this);
-        accountHandlerMap.put(account.getId(), handler);
-        addAccountToTray(account);
     }
 
     public void showNewMessages() {

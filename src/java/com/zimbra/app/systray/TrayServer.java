@@ -11,6 +11,8 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.UUID;
 
+import com.zimbra.app.systray.options.OptionsDialog;
+
 public class TrayServer implements Runnable {
     
     private final static String OK_RESPONSE    = "OK";
@@ -48,6 +50,7 @@ public class TrayServer implements Runnable {
         commandMap.put(CHECK_REQUEST, new Command() {
             public boolean execute(String arg) {
                 zmtray.pollNow();
+                OptionsDialog.showForm(zmtray);
                 return true;
             }
         });

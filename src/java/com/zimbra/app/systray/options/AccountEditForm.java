@@ -1,39 +1,35 @@
 package com.zimbra.app.systray.options;
 
-import java.awt.CardLayout;
-import java.awt.LayoutManager;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
-import javax.swing.JPanel;
-import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JTextField;
-import javax.swing.JPasswordField;
-import javax.swing.JList;
-import javax.swing.ListSelectionModel;
-import javax.swing.JButton;
 import javax.swing.DefaultListModel;
-import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
-
-import com.zimbra.app.systray.ZimbraTray;
-import com.zimbra.app.systray.Prefs;
-import com.zimbra.app.systray.Account;
-import com.zimbra.app.systray.AccountHandler;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
+import com.zimbra.app.systray.Account;
+import com.zimbra.app.systray.AccountHandler;
+import com.zimbra.app.systray.Prefs;
+import com.zimbra.app.systray.ZimbraTray;
 
 public class AccountEditForm extends ResourceBundleForm {
 
     private ZimbraTray zt;
     private AccountsForm af;
     private JPanel panel           = new JPanel();
+    private Account account;
 
     // account edit components
     private JTextField     name         = new JTextField();
@@ -83,6 +79,31 @@ public class AccountEditForm extends ResourceBundleForm {
         save.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if (verifySettings()) {
+                    Account other = Prefs.getPrefs().getAccount(name.getText());
+                    if (other != null &&
+                            !account.getId().equals(other.getId())) {
+                        JOptionPane.showMessageDialog(panel,
+                                getString("accountExistsError"),
+                                getString("errorString"),
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    account.setAccountName(name.getText());
+                    account.setServer(server.getText());
+                    account.setLogin(user.getText());
+                    account.setPassword(new String(pass.getPassword()));
+                    account.setSSL(!http.isSelected());
+                    account.setEnabled(!disabled.isSelected());
+                    Object[] folders = folderList.getSelectedValues();
+                    Object[] calendars = calendarList.getSelectedValues();
+                    ArrayList<String> folderNames = new ArrayList<String>();
+                    ArrayList<String> calendarNames = new ArrayList<String>();
+                    for (Object o : folders)
+                        folderNames.add(o.toString());
+                    for (Object o : calendars)
+                        calendarNames.add(o.toString());
+                    account.setSubscribedCalendarNames(calendarNames);
+                    account.setSubscribedMailFolders(folderNames);
                     af.show(AccountsForm.ACCOUNT_LIST_CARD);
                 }
             }
@@ -90,58 +111,59 @@ public class AccountEditForm extends ResourceBundleForm {
     }
 
     void setAccount(Account account) {
-         name.setText(account.getAccountName());
-         server.setText(account.getServer());
-         user.setText(account.getLogin());
-         pass.setText(account.getPassword());
-         http.setSelected(!account.isSSL());
-         boolean enabled = account.isEnabled();
-         disabled.setSelected(!enabled);
-         if (enabled) {
-             AccountHandler ah = zt.getAccountHandlerBy(account);
-             DefaultListModel folderModel = new DefaultListModel();
-             List<String> subscribedFolders =
-                     account.getSubscribedMailFolders();
-             int index = 0;
-             ArrayList<Integer> indices = new ArrayList<Integer>();
-             for (String folder : ah.getAvailableMailFolders()) {
-                 folderModel.addElement(folder);
-                 if (subscribedFolders.contains(folder))
-                     indices.add(index);
-                 index++;
-             }
-             folderList.setModel(folderModel);
-             int[] indexAry = new int[indices.size()];
-             for (int i = 0; i < indices.size(); i++) {
-                 indexAry[i] = indices.get(i);
-             }
-             folderList.setSelectedIndices(indexAry);
-             DefaultListModel calendarModel = new DefaultListModel();
-             List<String> subscribedCalendars =
-                     account.getSubscribedCalendarNames();
+        this.account = account;
+        name.setText(account.getAccountName());
+        server.setText(account.getServer());
+        user.setText(account.getLogin());
+        pass.setText(account.getPassword());
+        http.setSelected(!account.isSSL());
+        boolean enabled = account.isEnabled();
+        disabled.setSelected(!enabled);
+        if (enabled) {
+            AccountHandler ah = zt.getAccountHandlerBy(account);
+            DefaultListModel folderModel = new DefaultListModel();
+            List<String> subscribedFolders =
+                    account.getSubscribedMailFolders();
+            int index = 0;
+            ArrayList<Integer> indices = new ArrayList<Integer>();
+            for (String folder : ah.getAvailableMailFolders()) {
+                folderModel.addElement(folder);
+                if (subscribedFolders.contains(folder))
+                    indices.add(index);
+                index++;
+            }
+            folderList.setModel(folderModel);
+            int[] indexAry = new int[indices.size()];
+            for (int i = 0; i < indices.size(); i++) {
+                indexAry[i] = indices.get(i);
+            }
+            folderList.setSelectedIndices(indexAry);
+            DefaultListModel calendarModel = new DefaultListModel();
+            List<String> subscribedCalendars =
+                    account.getSubscribedCalendarNames();
 
-             indices.clear();
-             index = 0;
-             for (String calendar : ah.getAvailableCalendars()) {
-                 calendarModel.addElement(calendar);
-                 if (subscribedCalendars.contains(calendar))
-                     indices.add(index);
-                 index++;
-             }
-             indexAry = new int[indices.size()];
-             for (int i = 0; i < indices.size(); i++) {
-                 indexAry[i] = indices.get(i);
-             }
-             calendarList.setModel(calendarModel);
-             calendarList.setSelectedIndices(indexAry);
-             setComponentsVisible(new String[] {
-                     "folderList", "calendarList",
-                     "$label.folder", "$label.calendar" }, true);
-         } else {
-             setComponentsVisible(new String[] {
-                     "folderList", "calendarList",
-                     "$label.folder", "$label.calendar" }, false);
-         }
+            indices.clear();
+            index = 0;
+            for (String calendar : ah.getAvailableCalendars()) {
+                calendarModel.addElement(calendar);
+                if (subscribedCalendars.contains(calendar))
+                    indices.add(index);
+                index++;
+            }
+            indexAry = new int[indices.size()];
+            for (int i = 0; i < indices.size(); i++) {
+                indexAry[i] = indices.get(i);
+            }
+            calendarList.setModel(calendarModel);
+            calendarList.setSelectedIndices(indexAry);
+            setComponentsVisible(new String[] {
+                    "folderList", "calendarList",
+                    "$label.folder", "$label.calendar" }, true);
+        } else {
+            setComponentsVisible(new String[] {
+                    "folderList", "calendarList",
+                    "$label.folder", "$label.calendar" }, false);
+        }
     }
 
     public Component getComponent() {
@@ -166,7 +188,6 @@ public class AccountEditForm extends ResourceBundleForm {
         String serverName = server.getText();
         String username = user.getText();
         String password = new String(pass.getPassword());
-        boolean isSSL = !http.isSelected();
         int[] selectedFolders = folderList.getSelectedIndices();
         int[] selectedCalendars = calendarList.getSelectedIndices();
 

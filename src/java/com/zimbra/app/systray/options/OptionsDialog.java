@@ -27,6 +27,7 @@ public class OptionsDialog extends ResourceBundleForm {
         tabs.addTab(getString("advancedTab"), 
                 new AdvancedOptionsForm(zt).getComponent());
         dlg = new JDialog(zt.HIDDEN_PARENT, getString("title"));
+        dlg.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
         dlg.add(tabs);
         dlg.pack();
     }
@@ -36,6 +37,7 @@ public class OptionsDialog extends ResourceBundleForm {
             INSTANCE = new OptionsDialog(zt);
         Util.centerWindow(INSTANCE.dlg);
         INSTANCE.dlg.setVisible(true);
+        INSTANCE.dlg.toFront();
     }
 
     public static void showNewAccountForm(ZimbraTray zt) {
