@@ -59,7 +59,7 @@ public class MessageListView implements ListCellRenderer {
     }
 
     // TODO allow dismissing new messages by clicking on them
-    public static void showView(ZimbraTray zt, List<?> items) {
+    public static synchronized void showView(ZimbraTray zt, List<?> items) {
         INSTANCE.view.resetPreferredWidth();
         
         DefaultListModel model = new DefaultListModel();

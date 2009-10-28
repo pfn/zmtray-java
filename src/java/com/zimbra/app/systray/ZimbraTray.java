@@ -51,6 +51,7 @@ import com.hanhuy.common.ui.ConsoleViewer;
 public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean hasSystemTray = false;
     private boolean suppressMailAlerts = false;
+    private boolean showingNewAccountForm = false;
     
     private TrayIcon trayicon;
     private JPopupMenu menu;
@@ -86,7 +87,11 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
                 System.err.println(t.getClass().getName() + ": " +
                         thread.getName());
                 t.printStackTrace();
-                new ConsoleViewer(zt.HIDDEN_PARENT);
+                EventQueue.invokeLater(new Runnable() {
+                    public void run() {
+                        new ConsoleViewer(zt.HIDDEN_PARENT);
+                    }
+                });
             }
         });
         System.setOut(ConsoleViewer.OUT);
@@ -124,7 +129,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         List<String> names = prefs.getAccountNames();
 
         if (names.size() == 0) {
+            showingNewAccountForm = true;
             OptionsDialog.showNewAccountForm(this);
+            showingNewAccountForm = false;
             names = prefs.getAccountNames();
             if (names.size() == 0) {
                 JOptionPane.showMessageDialog(HIDDEN_PARENT,
@@ -298,13 +305,16 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private class OptionsMenuAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
             OptionsDialog.showForm(ZimbraTray.this);
-//-                Account account = form.getAccount();
-//-                if (!account.isEnabled()) return;
-//-                AccountHandler handler = new AccountHandler(
-//-                        account, ZimbraTray.this);
-//-                accountHandlerMap.put(account.getId(), handler);
-//-                addAccountToTray(account);
         }
+    }
+
+    public void startNewAccount(Account account) {
+        if (showingNewAccountForm) return;
+        if (!account.isEnabled()) return;
+        AccountHandler handler = new AccountHandler(
+                account, ZimbraTray.this);
+        accountHandlerMap.put(account.getId(), handler);
+        addAccountToTray(account);
     }
 
     public void showNewMessages() {
@@ -456,5 +466,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         finally {
             try { if (fin != null) fin.close(); } catch (IOException e2) { }
         }
+    }
+
+    public AccountHandler getAccountHandlerBy(Account acct) {
+         return accountHandlerMap.get(acct.getId());
     }
 }

@@ -201,7 +201,7 @@ implements TableCellRenderer {
         }
         catch (ClassNotFoundException e) { } // ignore
     }
-    public static void showView(ZimbraTray zt, Appointment appt) {
+    public static synchronized void showView(ZimbraTray zt, Appointment appt) {
         
         if (zt != null)
             INSTANCE.zmtray = zt;

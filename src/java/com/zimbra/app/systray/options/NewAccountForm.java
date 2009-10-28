@@ -124,6 +124,8 @@ public class NewAccountForm extends ResourceBundleForm {
                     getString("successString"),
                     JOptionPane.INFORMATION_MESSAGE);
             
+            zt.startNewAccount(account);
+
             AccountsForm.reset();
             server.setText("");
             name.setText("");
