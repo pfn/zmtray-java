@@ -16,6 +16,8 @@ public class MessageView extends ResourceBundleForm {
     
     private int preferredWidth;
     
+    private final static int ELIDE_LENGTH = 72;
+    
     private JLabel from     = new JLabel();
     private JLabel subject  = new JLabel();
     private JLabel fragment = new JLabel();
@@ -47,9 +49,16 @@ public class MessageView extends ResourceBundleForm {
     
     public void setMessage(Message m) {
         String name = m.getSenderName();
+        String f = m.getSenderAddress();
         if (name == null || "".equals(name.trim())) {
-            name = format("fromFormat2", m.getSenderAddress());
+            if (f.length() > ELIDE_LENGTH)
+                f = name.substring(0, ELIDE_LENGTH) + getString("elideString");
+            name = format("fromFormat2", f);
         } else {
+            if (name.length() + f.length() > ELIDE_LENGTH) {
+                int i = ELIDE_LENGTH - f.length();
+                name = name.substring(0, i);
+            }
             name = format("fromFormat1", name, m.getSenderAddress());
         }
         from.setText(name);
@@ -60,7 +69,11 @@ public class MessageView extends ResourceBundleForm {
         } else {
             setComponentVisible("subjectText", true);
             setComponentVisible("$label.subject", true);
-            subject.setText(m.getSubject());
+            String s = m.getSubject();
+            if (s.length() > ELIDE_LENGTH) {
+                s = s.substring(0, ELIDE_LENGTH) + getString("elideString");
+            }
+            subject.setText(s);
         }
 
         if (m.getFragment() == null || "".equals(m.getFragment().trim())) {
