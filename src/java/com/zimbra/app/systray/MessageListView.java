@@ -5,7 +5,15 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.util.List;
+import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.MatteBorder;
+import javax.swing.border.CompoundBorder;
+import javax.swing.JButton;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
@@ -17,7 +25,7 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
 
-//import com.sun.awt.AWTUtilities;
+import com.hanhuy.common.ui.Util;
 
 public class MessageListView implements ListCellRenderer {
     private ListCellRenderer defaultRenderer = new DefaultListCellRenderer();
@@ -86,9 +94,8 @@ public class MessageListView implements ListCellRenderer {
         dlg.add(list);
     }
     // TODO allow dismissing new messages by clicking on them
-    // TODO honor screen location pref
     // TODO add animation
-    // TODO allow mark-read, file-into-folder or tag-message
+    // TODO allow mark-read, file-into-folder, tag-message, junk or delete
     public static synchronized void showView(ZimbraTray zt, List<?> items) {
         INSTANCE.view.resetPreferredWidth();
         
@@ -104,10 +111,25 @@ public class MessageListView implements ListCellRenderer {
             dlg.setAlwaysOnTop(true);
             INSTANCE.useList();
             dlg.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
+            dlg.setUndecorated(true);
+            EtchedBorder b1 = new EtchedBorder(EtchedBorder.RAISED);
+            MatteBorder b2 = new MatteBorder(new Insets(3,3,3,3), Color.blue);
+            ((JComponent) dlg.getContentPane()).setBorder(
+            new CompoundBorder(b1, b2));
         }
         
         INSTANCE.list.setModel(model);
         
+        final JDialog fdlg = dlg;
+        dlg.addComponentListener(new ComponentAdapter() {
+            Dimension d = null;
+            public void componentResized(ComponentEvent e) {
+                if (d == null || !d.equals(fdlg.getSize())) {
+                    setWindowLocation(fdlg);
+                }
+                d = fdlg.getSize();
+            }
+        });
         dlg.pack();
         if (items.size() > 5) {
             int width = dlg.getSize().width + INSTANCE.useScrollPane();
@@ -118,8 +140,40 @@ public class MessageListView implements ListCellRenderer {
         } else {
             INSTANCE.useList();
         }
+        setWindowLocation(dlg);
         if (!dlg.isVisible())
             dlg.setVisible(true);
         dlg.toFront();
+    }
+
+    private static void setWindowLocation(JDialog dlg) {
+        Dimension size = dlg.getSize();
+        Rectangle r = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getMaximumWindowBounds();
+        Prefs.ScreenLocation l = Prefs.getPrefs().getMessageAlertLocation();
+        int x = 0, y = 0;
+        switch (l) {
+        case TOP_LEFT:
+            x = r.x;
+            y = r.y;
+            break;
+        case TOP_RIGHT:
+            x = r.width - size.width + r.x;
+            y = r.y;
+            break;
+        case BOTTOM_RIGHT:
+            x = r.width - size.width + r.x;
+            y = r.height - size.height + r.y;
+            break;
+        case BOTTOM_LEFT:
+            x = r.x;
+            y = r.height - size.height + r.y;
+            break;
+        }
+        if (Prefs.ScreenLocation.CENTER == l) {
+            Util.centerWindow(dlg);
+        } else {
+            dlg.setLocation(x, y);
+        }
     }
 }

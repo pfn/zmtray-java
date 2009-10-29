@@ -1,15 +1,25 @@
 package com.zimbra.app.systray;
 
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Rectangle;
+import java.awt.GraphicsEnvironment;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.Color;
+import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.JComponent;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -83,12 +93,8 @@ implements TableCellRenderer {
             found = a.equals(model.getValueAt(i, 0));
         }
         
-        if (found) {
-            System.out.println(a.getName() + ": found at: " + (i - 1));
+        if (found)
             removeAppointment(i - 1);
-        } else {
-            System.out.println(a.getName() + ": not found in view");
-        }
     }
     private void removeAppointment(final int row) {
         EventQueue.invokeLater(new Runnable() {
@@ -102,7 +108,9 @@ implements TableCellRenderer {
     
     private AppointmentView getAppointmentView(Appointment a) {
         if (!appointmentViewCache.containsKey(a)) {
-            appointmentViewCache.put(a, new AppointmentView(this, a));
+            AppointmentView view = new AppointmentView(this, a);
+            view.getComponent().setBackground(Color.white);
+            appointmentViewCache.put(a, view);
         }
         return appointmentViewCache.get(a);
     }
@@ -154,6 +162,7 @@ implements TableCellRenderer {
         JButton dismiss = new JButton();
         final JComboBox snoozeTime = new JComboBox(generateSnoozeStrings());
         
+        panel.setBackground(Color.white);
         panel.setLayout(createLayoutManager());
         panel.add(snooze,     "snoozeButton");
         panel.add(snoozeTime, "snoozeTimes");
@@ -203,7 +212,6 @@ implements TableCellRenderer {
     }
     
     // TODO animate window appearance (fade-in or slide depending on location)
-    // TODO honor screen location preference
     public static synchronized void showView(ZimbraTray zt, Appointment appt) {
         
         if (zt != null)
@@ -222,21 +230,34 @@ implements TableCellRenderer {
             INSTANCE.dlg = dlg;
             setWindowTranslucent();
             dlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+            dlg.setUndecorated(true);
+            EtchedBorder b1 = new EtchedBorder(EtchedBorder.RAISED);
+            MatteBorder b2 = new MatteBorder(new Insets(5,5,5,5), Color.red);
+            ((JComponent) dlg.getContentPane()).setBorder(
+                    new CompoundBorder(b1, b2));
         }
-        int rows = INSTANCE.model.getRowCount();
-        Dimension d = INSTANCE.table.getPreferredSize();
-        d.height = rows * (INSTANCE.table.getRowHeight()
-                + INSTANCE.table.getRowMargin());
         
+        final JDialog fdlg = dlg;
+        dlg.addComponentListener(new ComponentAdapter() {
+            Dimension d = null;
+            public void componentResized(ComponentEvent e) {
+                if (d == null || !d.equals(fdlg.getSize())) {
+                    setWindowLocation(fdlg);
+                }
+                d = fdlg.getSize();
+            }
+        });
+
         dlg.pack();
         if (!dlg.isVisible() && INSTANCE.model.getRowCount() > 0) {
-            Util.centerWindow(dlg);
             zt.playSound(Prefs.getPrefs().getAppointmentSound());
             dlg.setVisible(true);
         }
+        setWindowLocation(dlg);
         dlg.toFront();
         if (INSTANCE.model.getRowCount() == 0)
             dlg.setVisible(false);
+
     }
     
     private class TableCellEditor extends DefaultCellEditor {
@@ -263,11 +284,43 @@ implements TableCellRenderer {
             }
         
             appointmentViewCache.put(a, view);
+            view.getComponent().setBackground(Color.white);
             return view.getComponent();
         }
     }
     
     ZimbraTray getZimbraTray() {
         return zmtray;
+    }
+
+    private static void setWindowLocation(JDialog dlg) {
+        Dimension size = dlg.getSize();
+        Rectangle r = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getMaximumWindowBounds();
+        Prefs.ScreenLocation l = Prefs.getPrefs().getAppointmentAlertLocation();
+        int x = 0, y = 0;
+        switch (l) {
+        case TOP_LEFT:
+            x = r.x;
+            y = r.y;
+            break;
+        case TOP_RIGHT:
+            x = r.width - size.width + r.x;
+            y = r.y;
+            break;
+        case BOTTOM_RIGHT:
+            x = r.width - size.width + r.x;
+            y = r.height - size.height + r.y;
+            break;
+        case BOTTOM_LEFT:
+            x = r.x;
+            y = r.height - size.height + r.y;
+            break;
+        }
+        if (Prefs.ScreenLocation.CENTER == l) {
+            Util.centerWindow(dlg);
+        } else {
+            dlg.setLocation(x, y);
+        }
     }
 }
