@@ -1,5 +1,6 @@
 package com.zimbra.app.systray;
 
+import java.awt.EventQueue;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -9,7 +10,13 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
+import javax.swing.JPopupMenu;
+import javax.swing.JMenuItem;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.border.CompoundBorder;
@@ -26,12 +33,16 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
 
 import com.hanhuy.common.ui.Util;
+import com.hanhuy.common.ui.ResourceBundleForm;
 
-public class MessageListView implements ListCellRenderer {
+public class MessageListView extends ResourceBundleForm
+implements ListCellRenderer {
     private ListCellRenderer defaultRenderer = new DefaultListCellRenderer();
     private MessageView view = new MessageView();
     
     private final static MessageListView INSTANCE = new MessageListView();
+    private JPopupMenu messageMenu;
+    private JPopupMenu nothingMenu;
     
     private final JList list = new JList();
     
@@ -51,7 +62,7 @@ public class MessageListView implements ListCellRenderer {
             JComponent jc = (JComponent) c;
             EtchedBorder border = new EtchedBorder(EtchedBorder.LOWERED);
             Insets i = border.getBorderInsets(jc);
-            if (selected && focused) {
+            if (selected) {
                 jc.setBorder(border);
             } else {
                 jc.setBorder(new EmptyBorder(i));
@@ -66,7 +77,40 @@ public class MessageListView implements ListCellRenderer {
 
     private MessageListView() {
         list.setCellRenderer(this);
+        list.addMouseListener(new ListMouseListener());
+
+        initMenu();
+    }
+
+    private void initMenu() {
+        ActionListener hideListener = new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                hideView();
+            }
+        };
+        JMenuItem item;
+        item = new JMenuItem(getString("hideAlertItem"));
+        item.addActionListener(hideListener);
+        nothingMenu = new JPopupMenu();
+        nothingMenu.add(item);
+
+        messageMenu = new JPopupMenu();
+        item = new JMenuItem(getString("dismissAlertItem"));
+        messageMenu.add(item);
+        messageMenu.addSeparator();
+        item = new JMenuItem(getString("markItemRead"));
+        messageMenu.add(item);
+        item = new JMenuItem(getString("markItemJunk"));
+        messageMenu.add(item);
+        item = new JMenuItem(getString("tagItem"));
+        messageMenu.add(item);
+        item = new JMenuItem(getString("moveItem"));
+        messageMenu.add(item);
         
+        messageMenu.addSeparator();
+        item = new JMenuItem(getString("hideAlertItem"));
+        item.addActionListener(hideListener);
+        messageMenu.add(item);
     }
     
     private static void setWindowTranslucent() {
@@ -174,6 +218,38 @@ public class MessageListView implements ListCellRenderer {
             Util.centerWindow(dlg);
         } else {
             dlg.setLocation(x, y);
+        }
+    }
+
+    private class ListMouseListener extends MouseAdapter {
+        @Override
+        public void mousePressed(final MouseEvent e) {
+            int index = list.locationToIndex(e.getPoint());
+            Rectangle r = list.getCellBounds(index, index);
+            if (r.contains(e.getPoint())) {
+                list.setSelectedIndex(index);
+                maybeShowPopup(e);
+            }
+        }
+        public void mouseReleased(final MouseEvent e) {
+            int index = list.locationToIndex(e.getPoint());
+            Rectangle r = list.getCellBounds(index, index);
+            if (r.contains(e.getPoint())) {
+                list.setSelectedIndex(index);
+                maybeShowPopup(e);
+            }
+        }
+
+        private void maybeShowPopup(MouseEvent e) {
+            if (e.isPopupTrigger()) {
+                Object item = list.getSelectedValue();
+                JPopupMenu popup;
+                if (item instanceof Message)
+                    popup = messageMenu;
+                else
+                    popup = nothingMenu;
+                popup.show(e.getComponent(), e.getX(), e.getY());
+            }
         }
     }
 }
