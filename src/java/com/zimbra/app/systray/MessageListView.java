@@ -33,6 +33,7 @@ import javax.swing.border.MatteBorder;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
 import com.hanhuy.common.ui.Util;
+import com.sun.awt.AWTUtilities;
 import com.zimbra.app.systray.AccountHandler.MessageAction;
 
 public class MessageListView extends ResourceBundleForm
@@ -211,7 +212,9 @@ implements ListCellRenderer {
     private static void setWindowTranslucent() {
         try {
             Class.forName("com.sun.awt.AWTUtilities");
-            com.sun.awt.AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
+            if (AWTUtilities.isTranslucencySupported(
+                    AWTUtilities.Translucency.TRANSLUCENT))
+                AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
         }
         catch (ClassNotFoundException e) { } // ignore
     }

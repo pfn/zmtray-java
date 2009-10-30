@@ -1,39 +1,40 @@
 package com.zimbra.app.systray;
 
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Rectangle;
-import java.awt.GraphicsEnvironment;
 import java.awt.EventQueue;
+import java.awt.GraphicsEnvironment;
+import java.awt.Insets;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.Color;
-import java.awt.Insets;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
-import javax.swing.JComponent;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.CompoundBorder;
-import javax.swing.border.MatteBorder;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
 import com.hanhuy.common.ui.Util;
+import com.sun.awt.AWTUtilities;
 
 public class AppointmentListView extends ResourceBundleForm
 implements TableCellRenderer {
@@ -207,7 +208,9 @@ implements TableCellRenderer {
     private static void setWindowTranslucent() {
         try {
             Class.forName("com.sun.awt.AWTUtilities");
-            com.sun.awt.AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
+            if (AWTUtilities.isTranslucencySupported(
+                    AWTUtilities.Translucency.TRANSLUCENT))
+                AWTUtilities.setWindowOpacity(INSTANCE.dlg, 0.90f);
         }
         catch (ClassNotFoundException e) { } // ignore
     }

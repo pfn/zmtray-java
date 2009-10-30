@@ -39,7 +39,8 @@
   </target>
   <target name="compile">
     <mkdir dir="${build.dir}"/>
-    <javac srcdir="${java.src.dir}" destdir="${build.dir}" debug="on">
+    <javac target="1.5"
+           srcdir="${java.src.dir}" destdir="${build.dir}" debug="on">
       <classpath>
         <path refid="class.path"/>
       </classpath>
