@@ -297,7 +297,6 @@ implements ListCellRenderer {
         setWindowLocation(dlg);
         if (!dlg.isVisible())
             dlg.setVisible(true);
-        dlg.toFront();
     }
 
     public static void refreshView(List<?> items) {

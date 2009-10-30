@@ -251,12 +251,14 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         menu.add(item);
         
         menu.addSeparator();
-        //awtMenu.addSeparator();
+        awtMenu.addSeparator();
         
         item = new JMenuItem(getString("exitMenu"));
         item.addActionListener(new ExitAction());
         menu.add(item);
         
+        // don't use exit on OSX, so instead we'll have a poll now option
+        // in case we don't have a trayicon
         awtItem = new MenuItem(getString("pollNow"));
         awtItem.addActionListener(new ActionListener() {
             @Override
