@@ -127,21 +127,21 @@ public class AccountHandler implements Runnable {
         for (GetPrefsRequest.Pref pref : r.prefs) {
             if (POLL_INTERVAL_PREF.equals(pref.name)) {
                 char unit = pref.value.charAt(pref.value.length() - 1);
-                TimeUnit tu = null;
+                TU tu = null;
                 boolean dontchop = false;
                 switch (unit) {
-                case 'h': tu = TimeUnit.HOURS;   break;
-                case 'm': tu = TimeUnit.MINUTES; break;
-                case 's': tu = TimeUnit.SECONDS; break;
-                case 'd': tu = TimeUnit.DAYS;    break;
+                case 'h': tu = TU.HOURS;   break;
+                case 'm': tu = TU.MINUTES; break;
+                case 's': tu = TU.SECONDS; break;
+                case 'd': tu = TU.DAYS;    break;
                 default:
-                    tu = TimeUnit.SECONDS;
+                    tu = TU.SECONDS;
                     dontchop = true;
                 }
                 
                 int interval = Integer.parseInt(dontchop ? pref.value :
                         pref.value.substring(0, pref.value.length() - 1));
-                pollInterval = (int) TimeUnit.SECONDS.convert(interval, tu);
+                pollInterval = (int) TU.SECONDS.convert(interval, tu);
                 break;
             }
         }
@@ -254,9 +254,9 @@ public class AccountHandler implements Runnable {
         // also get undismissed reminders from the past few days
         // (over the weekend possibly: 3 days)
         r2.calendarSearchStartTime = System.currentTimeMillis() -
-                TimeUnit.MILLISECONDS.convert(3, TimeUnit.DAYS);
+                TU.MILLISECONDS.convert(3, TU.DAYS);
         r2.calendarSearchEndTime   = System.currentTimeMillis() +
-                TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS);
+                TU.MILLISECONDS.convert(1, TU.DAYS);
         folderQuery = new StringBuilder();
         for (String name : account.getSubscribedCalendarNames()) {
             GetFolderResponse.Folder f = nameFolderMap.get(name);
@@ -295,9 +295,9 @@ public class AccountHandler implements Runnable {
                     ArrayList<Appointment> appointments =
                             new ArrayList<Appointment>();
                     long alarmStartRange = System.currentTimeMillis() -
-                            TimeUnit.MILLISECONDS.convert(3, TimeUnit.DAYS);
+                            TU.MILLISECONDS.convert(3, TU.DAYS);
                     long alarmEndRange   = System.currentTimeMillis() +
-                            TimeUnit.MILLISECONDS.convert(1, TimeUnit.DAYS);
+                            TU.MILLISECONDS.convert(1, TU.DAYS);
         
                     for (SearchResponse.Appointment a : r.appointments) {
                         if (a.alarmData != null &&

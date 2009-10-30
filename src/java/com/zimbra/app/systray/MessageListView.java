@@ -236,6 +236,7 @@ implements ListCellRenderer {
         dlg.add(list);
     }
     // TODO add animation
+    // TODO auto-timeout window (5 seconds, not if focused, etc.)
     public static synchronized void showView(ZimbraTray zt, List<?> items) {
         INSTANCE.view.resetPreferredWidth();
         INSTANCE.zt = zt;

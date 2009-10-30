@@ -6,7 +6,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -73,9 +72,9 @@ public class AppointmentView extends ResourceBundleForm {
             d *= -1;
             overdue = true;
         }
-        int days    = (int) TimeUnit.DAYS.convert(d, TimeUnit.MILLISECONDS);
-        int hours   = (int) TimeUnit.HOURS.convert(d, TimeUnit.MILLISECONDS);
-        int minutes = (int) TimeUnit.MINUTES.convert(d, TimeUnit.MILLISECONDS);
+        int days    = (int) TU.DAYS.convert(d, TU.MILLISECONDS);
+        int hours   = (int) TU.HOURS.convert(d, TU.MILLISECONDS);
+        int minutes = (int) TU.MINUTES.convert(d, TU.MILLISECONDS);
         
         hours = hours % 24;
         minutes = minutes % 60;

@@ -15,7 +15,6 @@ import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
@@ -145,10 +144,10 @@ implements TableCellRenderer {
         ArrayList<String> strings = new ArrayList<String>();
         
         for (int time : SNOOZE_TIMES) {
-            int hours   = (int) TimeUnit.HOURS.convert(
-                    time, TimeUnit.MILLISECONDS);
-            int minutes = (int) TimeUnit.MINUTES.convert(
-                    time, TimeUnit.MILLISECONDS);
+            int hours   = (int) TU.HOURS.convert(
+                    time, TU.MILLISECONDS);
+            int minutes = (int) TU.MINUTES.convert(
+                    time, TU.MILLISECONDS);
             if (hours == 0) {
                 strings.add(format("minutes", minutes));
             } else {

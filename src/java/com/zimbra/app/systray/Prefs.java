@@ -179,4 +179,12 @@ public class Prefs {
                     ScreenLocation.TOP_RIGHT.ordinal());
         return ScreenLocation.values()[i];
     }
+    
+    public void flush() {
+        try {
+            prefs.flush();
+        } catch (BackingStoreException e) {
+            e.printStackTrace();
+        }
+    }
 }

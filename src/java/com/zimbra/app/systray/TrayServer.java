@@ -74,6 +74,7 @@ public class TrayServer implements Runnable {
             int port = socket.getLocalPort();
             prefs.setPort(port);
             prefs.setIPCKey(ipcKey);
+            prefs.flush();
             
             while (true) {
                 Socket s = socket.accept();

@@ -1,29 +1,29 @@
 package com.zimbra.app.systray.options;
 
-import java.io.IOException;
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileInputStream;
-import java.awt.Component;
-import java.awt.event.ActionListener;
-import java.awt.event.ActionEvent;
+import java.io.IOException;
+import java.util.Arrays;
 
-import javax.sound.sampled.Clip;
-import javax.sound.sampled.UnsupportedAudioFileException;
-import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.ImageIcon;
-import javax.swing.JPanel;
-import javax.swing.JCheckBox;
 import javax.swing.JButton;
-import javax.swing.JTextField;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileNameExtensionFilter;
-
-import com.zimbra.app.systray.Prefs;
-import com.zimbra.app.systray.ZimbraTray;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.filechooser.FileFilter;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
+import com.zimbra.app.systray.Prefs;
+import com.zimbra.app.systray.ZimbraTray;
 
 
 public class SoundsOptionsForm extends ResourceBundleForm {
@@ -74,9 +74,26 @@ public class SoundsOptionsForm extends ResourceBundleForm {
         ActionListener browseListener = new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 String cmd = e.getActionCommand();
-                FileNameExtensionFilter f = new FileNameExtensionFilter(
-                        getString("soundFiles"),
-                        "wav", "au", "aiff", "aifc", "snd");
+                FileFilter f = new FileFilter() {
+
+                    @Override
+                    public boolean accept(File e) {
+                        int idx = e.getName().lastIndexOf(".");
+                        if (idx == -1)
+                            return false;
+                        String ext = e.getName().substring(
+                                idx + 1).toLowerCase();
+                        return Arrays.asList("wav", "au", "aiff", "aifc", "snd")
+                                .contains(ext);
+                    }
+
+                    @Override
+                    public String getDescription() {
+                        return getString("soundFiles");
+                    }
+                };
+                        //getString("soundFiles"),
+                        //"wav", "au", "aiff", "aifc", "snd");
                 JFileChooser chooser;
                 if (System.getenv("windir") != null) {
                     chooser = new JFileChooser(System.getenv("windir") +

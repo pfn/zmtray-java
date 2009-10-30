@@ -1,12 +1,15 @@
 package com.zimbra.app.systray;
 
 import java.awt.AWTException;
+import java.awt.CheckboxMenuItem;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Image;
+import java.awt.MenuItem;
 import java.awt.Point;
+import java.awt.PopupMenu;
 import java.awt.SystemTray;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -14,6 +17,8 @@ import java.beans.PropertyEditorManager;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +44,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.UIManager;
 
+import com.apple.eawt.Application;
+import com.apple.eawt.ApplicationAdapter;
+import com.apple.eawt.ApplicationEvent;
 import com.hanhuy.common.ui.ConsoleViewer;
 import com.hanhuy.common.ui.DimensionEditor;
 import com.hanhuy.common.ui.FontEditor;
@@ -55,12 +63,15 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     
     private TrayIcon trayicon;
     private JPopupMenu menu;
+    private PopupMenu awtMenu; // used for OSX dock menu
     
     private final ImageIcon NORMAL_ICON;
     private final ImageIcon NEW_MAIL_ICON;
     
     private HashMap<String,JMenuItem> accountMenuMap =
             new HashMap<String,JMenuItem>();
+    private HashMap<String,MenuItem> accountAWTMenuMap =
+            new HashMap<String,MenuItem>();
     private HashMap<String,AccountHandler> accountHandlerMap =
             new HashMap<String,AccountHandler>();
     
@@ -122,6 +133,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
     public void run() {
         setupSystemTray();
+        setupForOSX();
         Prefs prefs = Prefs.getPrefs();
         SoapInterface.setDebug(prefs.getSoapDebug());
 
@@ -153,6 +165,46 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             OptionsDialog.showForm(this);
     }
     
+    private void setupForOSX() {
+        String os = System.getProperty("os.name");
+        if (!os.contains("Mac OS X"))
+            return;
+        Application app = Application.getApplication();
+        app.addPreferencesMenuItem();
+        app.setEnabledPreferencesMenu(true);
+        app.addApplicationListener(new ApplicationAdapter() {
+            @Override
+            public void handlePreferences(ApplicationEvent e) {
+                OptionsDialog.showForm(ZimbraTray.this);
+            }
+
+            @Override
+            public void handleQuit(ApplicationEvent e) {
+            }
+
+            @Override
+            public void handleReOpenApplication(ApplicationEvent e) {
+                OptionsDialog.showForm(ZimbraTray.this);
+            }
+            
+        });
+        // Hack for java 1.6 on OSX
+        try {
+            Method m =  Application.class.getDeclaredMethod(
+                    "setDockMenu", PopupMenu.class);
+            m.invoke(app, awtMenu);
+        }
+        catch (NoSuchMethodException e) {
+            System.out.println(
+                    "Dock menus are not supported on this version of Java/OSX");
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
+    
     private void checkIfRunning() {
         TrayServer ts = new TrayServer(this);
         if (ts.checkIfRunning())
@@ -175,25 +227,50 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         hasSystemTray = true;
         
         JMenuItem item;
+        MenuItem awtItem;
         menu = new JPopupMenu();
+        awtMenu = new PopupMenu();
+        
         menu.addSeparator();
+        awtMenu.addSeparator();
+        
+        PauseMailMenuAction pauseAction = new PauseMailMenuAction();
         item = new JCheckBoxMenuItem(getString("pauseMailMenu"));
-        item.addActionListener(new PauseMailMenuAction());
+        item.addActionListener(pauseAction);
+        awtItem = new CheckboxMenuItem(getString("pauseMailMenu"));
+        awtItem.addActionListener(pauseAction);
+        awtMenu.add(awtItem);
         menu.add(item);
+        
+        OptionsMenuAction optionsAction = new OptionsMenuAction();
         item = new JMenuItem(getString("optionsMenu"));
-        item.addActionListener(new OptionsMenuAction());
+        item.addActionListener(optionsAction);
+        awtItem = new MenuItem(getString("optionsMenu"));
+        awtItem.addActionListener(optionsAction);
+        awtMenu.add(awtItem);
         menu.add(item);
+        
         menu.addSeparator();
+        //awtMenu.addSeparator();
+        
         item = new JMenuItem(getString("exitMenu"));
         item.addActionListener(new ExitAction());
         menu.add(item);
+        
+        awtItem = new MenuItem(getString("pollNow"));
+        awtItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pollNow();
+            }
+        });
         
         trayicon = new TrayIcon(NORMAL_ICON.getImage(), this);
         trayicon.setJPopupMenu(menu);
         trayicon.setToolTip(getString("defaultToolTip"));
         trayicon.setImageAutoSize(true);
         try {
-            tray.add(trayicon);
+            tray.add(trayicon.getTrayIcon());
         }
         catch (AWTException e) {
             throw new IllegalStateException(e);
@@ -207,8 +284,15 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         JMenuItem item = new JMenuItem(name);
         item.setActionCommand(acct.getId());
         item.addActionListener(openClientAction);
+        
+        MenuItem awtItem = new MenuItem(name);
+        awtItem.setActionCommand(acct.getId());
+        awtItem.addActionListener(openClientAction);
         menu.insert(item, 0);
         accountMenuMap.put(acct.getId(), item);
+        
+        awtMenu.insert(awtItem, 0);
+        accountAWTMenuMap.put(acct.getId(), awtItem);
     }
     
     /**
@@ -242,6 +326,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         if (!hasSystemTray)
             return;
         menu.remove(accountMenuMap.get(acct.getId()));
+        awtMenu.remove(accountAWTMenuMap.get(acct.getId()));
     }
     
     public void setTrayIcon(Image icon) {
@@ -254,17 +339,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         if (!hasSystemTray)
             return;
         trayicon.setToolTip(text);
-    }
-    
-    public void setTrayMessage(String title, String text) {
-        if (!hasSystemTray)
-            return;
-        trayicon.displayMessage(title, text, TrayIcon.MessageType.NONE);
-    }
-    public void setTrayError(String title, String text) {
-        if (!hasSystemTray)
-            return;
-        trayicon.displayMessage(title, text, TrayIcon.MessageType.ERROR);
     }
     
     private static class ExitAction implements ActionListener {
