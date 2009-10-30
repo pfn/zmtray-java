@@ -29,12 +29,14 @@ import com.zimbra.app.soap.messages.GetInfoRequest;
 import com.zimbra.app.soap.messages.GetInfoResponse;
 import com.zimbra.app.soap.messages.GetPrefsRequest;
 import com.zimbra.app.soap.messages.GetPrefsResponse;
+import com.zimbra.app.soap.messages.MsgActionRequest;
+import com.zimbra.app.soap.messages.MsgActionResponse;
 import com.zimbra.app.soap.messages.SearchRequest;
 import com.zimbra.app.soap.messages.SearchResponse;
 
 public class AccountHandler implements Runnable {
     private final ZimbraTray zmtray;
-    private String authToken;
+    private volatile String authToken;
     private final Account account;
     private String serverVersionString;
     private String serverUsername;
@@ -42,6 +44,8 @@ public class AccountHandler implements Runnable {
 
     private volatile boolean isRunning;
 
+    private final static String NEED_TO_REAUTH = "zmtray::NEED_TO_REAUTH";
+    
     private final static ThreadLocal<Account> currentAccount =
             new ThreadLocal<Account>();
     
@@ -69,6 +73,15 @@ public class AccountHandler implements Runnable {
     private final static String POLL_INTERVAL_PREF =
             "zimbraPrefMailPollingInterval";
 
+    public enum MessageAction {
+        READ("read"), FLAG("flag"), UPDATE("update"),
+        MOVE("move"), SPAM("spam"), TRASH("trash");
+        public final String op;
+        MessageAction(String value) {
+            this.op = value;
+        }
+    }
+    
     public AccountHandler(Account account, ZimbraTray zmtray) {
         this.account = account;
         this.zmtray = zmtray;
@@ -300,7 +313,7 @@ public class AccountHandler implements Runnable {
                 zmtray.updateUnreadMessages(account, null);
             }
         } catch (SOAPFaultException e) {
-            authToken = null;
+            authToken = NEED_TO_REAUTH;
             System.out.println(account.getAccountName() + ":" + e.reason.text +
                     ":" + e.code.value);
         } catch (IOException e) {
@@ -316,7 +329,7 @@ public class AccountHandler implements Runnable {
         }
     }
     
-    public void run() {
+    public synchronized void run() {
         isRunning = true;
         currentAccount.set(account);
         try {
@@ -332,9 +345,18 @@ public class AccountHandler implements Runnable {
         }
         finally {
             if (!shutdown) {
-                f = zmtray.getExecutor().schedule(this,
-                        pollInterval == -1 ? ERROR_POLL_INTERVAL : pollInterval,
-                                TimeUnit.SECONDS);
+                if (NEED_TO_REAUTH.equals(authToken)) {
+                    System.out.println(account.getAccountName() +
+                            ": need to reauth, polling immediately");
+                    authToken = null;
+                    f = zmtray.getExecutor().schedule(
+                            this, 0, TimeUnit.SECONDS);
+                } else {
+                    f = zmtray.getExecutor().schedule(this,
+                            pollInterval == -1 ?
+                                    ERROR_POLL_INTERVAL : pollInterval,
+                                    TimeUnit.SECONDS);
+                }
             }
             currentAccount.set(null);
             isRunning = false;
@@ -359,7 +381,6 @@ public class AccountHandler implements Runnable {
                 return;
             }
         
-System.out.println(account.getAccountName() + ": searching for new items");
             searchForNewItems();
         }
         
@@ -415,6 +436,46 @@ System.out.println(account.getAccountName() + ": searching for new items");
         } catch (SOAPFaultException e) {
             showMessage(account.getAccountName() + " : " + 
                     e.reason.text, "DismissCalendarItemAlarmRequest",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "IOException",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (SOAPException e) {
+            e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "SOAPException",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+        finally {
+            currentAccount.set(null);
+        }
+    }
+    
+    public void doMessageAction(Message m, MessageAction op, String args) {
+        MsgActionRequest r = new MsgActionRequest();
+        r.action.id = "" + m.getId();
+        r.action.op = op.op;
+        switch (op) {
+        case UPDATE:
+            r.action.tags = args;
+            break;
+        case MOVE:
+            r.action.folderId = args;
+            break;
+        }
+        
+        try {
+            currentAccount.set(account);
+            MsgActionResponse ret = SoapInterface.call(
+                    r, MsgActionResponse.class,
+                    account.getServiceURL(), authToken);
+            System.out.println(ret.action.id + ": Succesful action: " +
+                    ret.action.op);
+        } catch (SOAPFaultException e) {
+            showMessage(account.getAccountName() + " : " + 
+                    e.reason.text, "MsgActionRequest",
                     JOptionPane.ERROR_MESSAGE);
         } catch (IOException e) {
             e.printStackTrace();

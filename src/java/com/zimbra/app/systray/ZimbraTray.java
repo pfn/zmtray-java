@@ -1,8 +1,5 @@
 package com.zimbra.app.systray;
 
-import com.zimbra.app.soap.SoapInterface;
-import com.zimbra.app.systray.options.OptionsDialog;
-
 import java.awt.AWTException;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -14,13 +11,14 @@ import java.awt.SystemTray;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyEditorManager;
-import java.io.IOException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -28,25 +26,27 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.swing.ImageIcon;
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.UIManager;
-import javax.swing.JMenuItem;
-import javax.swing.JPopupMenu;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.swing.ImageIcon;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JFrame;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.UIManager;
 
+import com.hanhuy.common.ui.ConsoleViewer;
 import com.hanhuy.common.ui.DimensionEditor;
 import com.hanhuy.common.ui.FontEditor;
 import com.hanhuy.common.ui.IntEditor;
 import com.hanhuy.common.ui.PointEditor;
 import com.hanhuy.common.ui.ResourceBundleForm;
-import com.hanhuy.common.ui.ConsoleViewer;
+import com.zimbra.app.soap.SoapInterface;
+import com.zimbra.app.systray.options.OptionsDialog;
 
 public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean hasSystemTray = false;
@@ -275,41 +275,71 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     
     private class OpenClientAction implements ActionListener {
         public void actionPerformed(ActionEvent e) {
-            if (!Desktop.isDesktopSupported()) {
-                JOptionPane.showMessageDialog(HIDDEN_PARENT,
-                        "java.awt.Desktop is not supported",
-                        "Unable to open webclient",
-                        JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-            Desktop d = Desktop.getDesktop();
             String id = e.getActionCommand();
 
             AccountHandler h = accountHandlerMap.get(id);
             Account acct = h.getAccount();
-            String name = acct.getAccountName();
-            List<Message> msgs = newMessages.get(acct);
-            if (msgs != null)
-                msgs.clear();
-            
-            updateTrayIcon();
-            JMenuItem item = accountMenuMap.get(id);
-            item.setText(name);
-            
-            String authToken = h.getAuthToken();
-            if (authToken == null) {
-                JOptionPane.showMessageDialog(HIDDEN_PARENT,
-                        format("notLoggedIn", name), getString("errorString"),
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            try {
-                d.browse(acct.getPreauthURI(authToken));
-            }
-            catch (IOException ex) {
-                throw new IllegalStateException(ex);
-            }
+            openClient(acct, null);
         }
+    }
+    
+    public void openClient(Account acct, Message m) {
+        if (!Desktop.isDesktopSupported()) {
+            JOptionPane.showMessageDialog(HIDDEN_PARENT,
+                    getString("noJavaAwtDesktop"),
+                    getString("cannotOpenWebClient"),
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        Desktop d = Desktop.getDesktop();
+        String name = acct.getAccountName();
+        List<Message> msgs = newMessages.get(acct);
+        if (m == null && msgs != null) {
+            System.out.println("clear!");
+            msgs.clear();
+        } else if (m != null && msgs != null) {
+            System.out.println("remove!");
+            msgs.remove(m);
+            System.out.println("Left: " + msgs.size());
+        }
+
+        updateTrayIcon();
+        if (m == null) {
+            JMenuItem item = accountMenuMap.get(acct.getId());
+            item.setText(name);
+        } else
+            updateUnreadMessages(acct, msgs);
+
+        AccountHandler h = accountHandlerMap.get(acct.getId());
+        String authToken = h.getAuthToken();
+        if (authToken == null) {
+            JOptionPane.showMessageDialog(HIDDEN_PARENT,
+                    format("notLoggedIn", name), getString("errorString"),
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        try {
+            URI u = acct.getPreauthURI(authToken);
+            if (m != null) {
+                u = acct.getMessageUri(authToken, m);
+                showNewMessages(false);
+            }
+            d.browse(u);
+        }
+        catch (IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+    
+    public void dismissMessage(Message m) {
+        if (m == null)
+            return;
+        List<Message> msgs = newMessages.get(m.getAccount());
+        if (msgs == null)
+            return;
+        msgs.remove(m);
+        updateUnreadMessages(m.getAccount(), msgs);
+        showNewMessages(false);
     }
     
     public ScheduledExecutorService getExecutor() {
@@ -328,7 +358,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         }
     }
 
-    public void showNewMessages() {
+    public void showNewMessages(boolean showView) {
         ArrayList<Object> list = new ArrayList<Object>();
         for (Account a : newMessages.keySet()) {
             List<Message> msgs = newMessages.get(a);
@@ -339,8 +369,10 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             }
         }
         
-        if (list.size() > 0)
+        if (list.size() > 0 && showView)
             MessageListView.showView(this, list);
+        else
+            MessageListView.refreshView(list);
     }
 
     /**
@@ -352,7 +384,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             messages = Collections.emptyList();
         if (msgs != null) {
             if (msgs.retainAll(messages) && !suppressMailAlerts)
-                showNewMessages();
+                showNewMessages(false);
         }
         String name = account.getAccountName();
         JMenuItem item = accountMenuMap.get(account.getId());
@@ -377,14 +409,13 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         }
         if (!suppressMailAlerts) {
             playSound(Prefs.getPrefs().getMessageSound());
-            showNewMessages();
+            showNewMessages(true);
         }
 
         updateTrayIcon();
     }
 
-    public void appointmentsFound(Account account,
-            List<Appointment> appts) {
+    public void appointmentsFound(Account account, List<Appointment> appts) {
         if (!appointments.containsKey(account)) {
             appointments.put(account, new HashSet<Appointment>());
         }
@@ -405,6 +436,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         for (Appointment a : removedAppointments) {
             a.cancelAlarm();
         }
+        AppointmentListView.refreshView();
     }
     
     public void dismissAppointments(List<Appointment> appts) {

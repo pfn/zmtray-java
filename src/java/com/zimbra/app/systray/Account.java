@@ -1,24 +1,23 @@
 package com.zimbra.app.systray;
 
-import java.util.prefs.Preferences;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.UUID;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.prefs.Preferences;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -236,12 +235,13 @@ public class Account {
     }
     
     public URI getPreauthURI(String authToken) {
-        try {
-            return new URI((isSSL() ? "https" : "http") + "://"
-                    + getServer() + PREAUTH_URI + authToken);
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException(e);
-        }
+        return URI.create((isSSL() ? "https" : "http") + "://"
+                + getServer() + PREAUTH_URI + authToken);
+    }
+    
+    public URI getMessageUri(String authToken, Message m) {
+        return URI.create(getPreauthURI(authToken).toString() +
+                "&app=mail&id=" + m.getId());
     }
 
     public X509TrustManager getTrustManager() {

@@ -1,46 +1,48 @@
 package com.zimbra.app.systray;
 
-import java.awt.EventQueue;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Insets;
-import java.util.List;
 import java.awt.GraphicsEnvironment;
+import java.awt.Insets;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.Enumeration;
+import java.util.List;
 
-import javax.swing.JPopupMenu;
-import javax.swing.JMenuItem;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.MatteBorder;
-import javax.swing.border.CompoundBorder;
-import javax.swing.JButton;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
+import javax.swing.border.MatteBorder;
 
-import com.hanhuy.common.ui.Util;
 import com.hanhuy.common.ui.ResourceBundleForm;
+import com.hanhuy.common.ui.Util;
+import com.zimbra.app.systray.AccountHandler.MessageAction;
 
 public class MessageListView extends ResourceBundleForm
 implements ListCellRenderer {
+    private ZimbraTray zt;
     private ListCellRenderer defaultRenderer = new DefaultListCellRenderer();
     private MessageView view = new MessageView();
     
     private final static MessageListView INSTANCE = new MessageListView();
+    private final static int SCROLLPANE_THRESHOLD = 5;
     private JPopupMenu messageMenu;
     private JPopupMenu nothingMenu;
     
@@ -82,6 +84,7 @@ implements ListCellRenderer {
         initMenu();
     }
 
+    // TODO use swing action framework, accelerators, mnemonics, etc.
     private void initMenu() {
         ActionListener hideListener = new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -95,19 +98,111 @@ implements ListCellRenderer {
         nothingMenu.add(item);
 
         messageMenu = new JPopupMenu();
+        
         item = new JMenuItem(getString("dismissAlertItem"));
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Message m = (Message) list.getSelectedValue();
+                dismissMessageAlert(m);
+            }
+        });
         messageMenu.add(item);
-        messageMenu.addSeparator();
-        item = new JMenuItem(getString("markItemRead"));
-        messageMenu.add(item);
-        item = new JMenuItem(getString("markItemJunk"));
-        messageMenu.add(item);
-        item = new JMenuItem(getString("tagItem"));
-        messageMenu.add(item);
-        item = new JMenuItem(getString("moveItem"));
+        
+        item = new JMenuItem(getString("openItem"));
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Message m = (Message) list.getSelectedValue();
+                Account a = m.getAccount();
+                zt.openClient(a, m);
+            }
+        });
         messageMenu.add(item);
         
         messageMenu.addSeparator();
+        
+        item = new JMenuItem(getString("markItemRead"));
+        messageMenu.add(item);
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Message m = (Message) list.getSelectedValue();
+                dismissMessageAlert(m);
+                doMessageAction(m, MessageAction.READ, null);
+            }
+        });
+        item = new JMenuItem(getString("markItemFlag"));
+        messageMenu.add(item);
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Message m = (Message) list.getSelectedValue();
+                dismissMessageAlert(m);
+                doMessageAction(m, MessageAction.FLAG, null);
+            }
+        });
+        item = new JMenuItem(getString("tagItem"));
+        messageMenu.add(item);
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                //Message m = (Message) list.getSelectedValue();
+                /*
+                String tags = JOptionPane.showInputDialog(dlg,
+                        getString("tagText"), getString("tagTitle"),
+                        JOptionPane.QUESTION_MESSAGE);
+                if (tags == null || "".equals(tags.trim()))
+                    return;
+                 */
+                // TODO implement tagItem
+                //doMessageAction(m, MessageAction.UPDATE, tags);
+                JOptionPane.showMessageDialog(dlg,
+                        "Tagging messages is not implemented, yet",
+                        "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
+                //dismissMessageAlert(m);
+            }
+        });
+        item = new JMenuItem(getString("moveItem"));
+        messageMenu.add(item);
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                //Message m = (Message) list.getSelectedValue();
+                JOptionPane.showMessageDialog(dlg,
+                        "Moving messages is not implemented, yet",
+                        "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
+                //dismissMessageAlert(m);
+                // TODO implement moveItem
+            }
+        });
+        
+        messageMenu.addSeparator();
+        
+        item = new JMenuItem(getString("markItemJunk"));
+        messageMenu.add(item);
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Message m = (Message) list.getSelectedValue();
+                dismissMessageAlert(m);
+                doMessageAction(m, MessageAction.SPAM, null);
+            }
+        });
+        
+        item = new JMenuItem(getString("deleteItem"));
+        messageMenu.add(item);
+        item.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Message m = (Message) list.getSelectedValue();
+                dismissMessageAlert(m);
+                doMessageAction(m, MessageAction.TRASH, null);
+            }
+        });
+        
+        messageMenu.addSeparator();
+        
         item = new JMenuItem(getString("hideAlertItem"));
         item.addActionListener(hideListener);
         messageMenu.add(item);
@@ -137,16 +232,11 @@ implements ListCellRenderer {
         dlg.getContentPane().removeAll();
         dlg.add(list);
     }
-    // TODO allow dismissing new messages by clicking on them
     // TODO add animation
-    // TODO allow mark-read, file-into-folder, tag-message, junk or delete
     public static synchronized void showView(ZimbraTray zt, List<?> items) {
         INSTANCE.view.resetPreferredWidth();
+        INSTANCE.zt = zt;
         
-        DefaultListModel model = new DefaultListModel();
-        for (Object item : items) {
-            model.addElement(item);
-        }
         JDialog dlg = INSTANCE.dlg;
         if (dlg == null) {
             dlg = new JDialog(zt.HIDDEN_PARENT);
@@ -162,32 +252,55 @@ implements ListCellRenderer {
             new CompoundBorder(b1, b2));
         }
         
+        _showView(items);
+    }
+    
+    private static void _showView(List<?> items) {
+        DefaultListModel model = new DefaultListModel();
+        for (Object item : items) {
+            model.addElement(item);
+        }
         INSTANCE.list.setModel(model);
         
-        final JDialog fdlg = dlg;
+        final JDialog dlg = INSTANCE.dlg;
         dlg.addComponentListener(new ComponentAdapter() {
             Dimension d = null;
             public void componentResized(ComponentEvent e) {
-                if (d == null || !d.equals(fdlg.getSize())) {
-                    setWindowLocation(fdlg);
+                if (d == null || !d.equals(dlg.getSize())) {
+                    setWindowLocation(dlg);
                 }
-                d = fdlg.getSize();
+                d = dlg.getSize();
             }
         });
         dlg.pack();
-        if (items.size() > 5) {
+        int msgCount = 0;
+        Enumeration<?> e = model.elements();
+        while (e.hasMoreElements()) {
+            Object o = e.nextElement();
+            if (o instanceof Message)
+                msgCount++;
+        }
+        if (msgCount > SCROLLPANE_THRESHOLD) {
             int width = dlg.getSize().width + INSTANCE.useScrollPane();
             Component c = INSTANCE.getListCellRendererComponent(null,
-                    items.get(1), 0, false, false);
-            dlg.setSize(new Dimension(width, 5 *
+                    model.elementAt(1), 0, false, false);
+            dlg.setSize(new Dimension(width, SCROLLPANE_THRESHOLD *
                     c.getPreferredSize().height));
         } else {
             INSTANCE.useList();
+            dlg.pack();
         }
         setWindowLocation(dlg);
         if (!dlg.isVisible())
             dlg.setVisible(true);
         dlg.toFront();
+    }
+
+    public static void refreshView(List<?> items) {
+        JDialog dlg = INSTANCE.dlg;
+        if (dlg == null || !dlg.isVisible())
+            return;
+        _showView(items);
     }
 
     private static void setWindowLocation(JDialog dlg) {
@@ -251,5 +364,19 @@ implements ListCellRenderer {
                 popup.show(e.getComponent(), e.getX(), e.getY());
             }
         }
+    }
+    
+    private void dismissMessageAlert(Message m) {
+        zt.dismissMessage(m);
+    }
+    
+    private void doMessageAction(final Message m, final MessageAction a,
+            final String args) {
+        final AccountHandler h = zt.getAccountHandlerBy(m.getAccount());
+        zt.getExecutor().submit(new Runnable() {
+            public void run() {
+                h.doMessageAction(m, a, args);
+            }
+        });
     }
 }

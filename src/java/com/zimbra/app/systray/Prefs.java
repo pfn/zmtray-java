@@ -172,8 +172,11 @@ public class Prefs {
     }
     
     public ScreenLocation getMessageAlertLocation() {
-        int i = prefs.getInt(
-                MSG_LOCATION_KEY, ScreenLocation.BOTTOM_RIGHT.ordinal());
+        String os = System.getProperty("os.name");
+        boolean isWindows =  os.contains("Windows");
+        int i = prefs.getInt(MSG_LOCATION_KEY, isWindows ?
+                ScreenLocation.BOTTOM_RIGHT.ordinal() :
+                    ScreenLocation.TOP_RIGHT.ordinal());
         return ScreenLocation.values()[i];
     }
 }

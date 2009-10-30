@@ -14,6 +14,7 @@ import java.awt.Color;
 import java.awt.Insets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.JComponent;
@@ -259,6 +260,24 @@ implements TableCellRenderer {
             dlg.setVisible(false);
 
     }
+    
+    public static void refreshView() {
+        JDialog dlg = INSTANCE.dlg;
+        if (dlg == null || !dlg.isVisible())
+            return;
+        HashSet<Appointment> removed = new HashSet<Appointment>();
+        int count = INSTANCE.model.getRowCount();
+        int i;
+        for (i = 0; i < count; i++) {
+            Appointment a = (Appointment) INSTANCE.model.getValueAt(i, 0);
+            if (a.isDismissed())
+                removed.add(a);
+        }
+        for (Appointment a : removed)
+            INSTANCE.removeAppointment(a);
+        showView(null, null);
+    }
+    
     
     private class TableCellEditor extends DefaultCellEditor {
         private Object value;
