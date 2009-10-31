@@ -1,6 +1,8 @@
 <project name="Zimbra Tray Icon" basedir="." default="compile">
+
   <property name="lib.dir" value="lib"/>
   <property name="build.dir" value="build"/>
+  <property name="dist.dir" value="dist"/>
   <property name="test.build.dir" value="${build.dir}/test"/>
   <property name="src.dir" value="src"/>
   <property name="java.src.dir" value="${src.dir}/java"/>
@@ -9,9 +11,19 @@
   <property name="dist.file" value="zmtray.jar"/>
   <property name="dist.resource.file" value="zmtray-resources.jar"/>
   <property name="resources.dir" value="resources"/>
+
+  <property file="build.properties"/>
+  <taskdef name="pack200"
+      classname="com.sun.tools.apache.ant.pack200.Pack200Task"
+      classpath="${lib.dir}/Pack200Task.jar"/>
+  <taskdef name="unpack200"
+      classname="com.sun.tools.apache.ant.pack200.Unpack200Task"
+      classpath="${lib.dir}/Pack200Task.jar"/>
+
   <path id="class.path">
     <fileset dir="${lib.dir}" includes="*.jar"/>
   </path>
+
   <target name="test" depends="compiletest,dist">
     <java classname="com.zimbra.app.soap.Test" fork="true">
       <classpath location="${build.dir}"/>
@@ -77,4 +89,83 @@
                prefix="com/zimbra/app/systray/resources"/>
     </jar>
   </target>
+
+  <target name="signjars" depends="jar">
+    <antcall target="signjar">
+      <param name="src" value="${build.dir}/${dist.resource.file}"/>
+    </antcall>
+
+    <antcall target="signjar">
+      <param name="src" value="${build.dir}/${dist.file}"/>
+      <param name="packgz" value="true"/>
+    </antcall>
+    <antcall target="signjar">
+      <param name="src" value="${lib.dir}/hanhuy-common-ui.jar"/>
+      <param name="packgz" value="true"/>
+    </antcall>
+    <antcall target="signjar">
+      <param name="src" value="${lib.dir}/activation.jar"/>
+      <param name="packgz" value="true"/>
+    </antcall>
+    <antcall target="signjar">
+      <param name="src" value="${lib.dir}/saaj-api.jar"/>
+      <param name="packgz" value="true"/>
+    </antcall>
+    <antcall target="signjar">
+      <param name="src" value="${lib.dir}/saaj-impl.jar"/>
+      <param name="packgz" value="true"/>
+    </antcall>
+  </target>
+
+
+  <target name="signjar" depends="dependsignjar" unless="signjar.uptodate">
+    <mkdir dir="${build.dir}/pack200"/>
+    <antcall target="repack200"/>
+    <signjar jar="${dist.dir}/${src.jar}"
+           alias="${key.alias}" keystore="${key.store}"
+       storepass="${key.store.pass}" storetype="${key.store.type}"/>
+    <antcall target="pack200"/>
+  </target>
+  <target name="repack200" if="packgz">
+    <pack200 src="${src}" destfile="${build.dir}/pack200/${src.jar}"
+          repack="true"/>
+    <move file="${build.dir}/pack200/${src.jar}"
+        tofile="${dist.dir}/${src.jar}"/>
+  </target>
+  <target name="pack200" if="packgz">
+    <pack200 src="${dist.dir}/${src.jar}"
+        destfile="${dist.dir}/${src.jar}.pack.gz" gzipoutput="true"/>
+  </target>
+  <target name="copyjar" if="need.copy">
+    <copy file="${src}" todir="${dist.dir}"/>
+  </target>
+  <target name="dependsignjar">
+    <basename property="src.jar" file="${src}"/>
+    <dirname  property="src.dir" file="${src}"/>
+    <property name="packgz.ext" value=""/>
+    <condition property="packgz.ext" value=".pack.gz">
+      <isset property="packgz"/>
+    </condition>
+    <property name="target.file"
+             value="${dist.dir}/${src.jar}${packgz.ext}"/>
+    <uptodate property="signjar.uptodate" srcfile="${src}"
+            targetfile="${target.file}"/>
+    <condition property="need.copy">
+      <or>
+        <not>
+          <available file="${target.file}"/>
+        </not>
+        <and>
+          <isfalse value="${signjar.uptodate}"/>
+          <not>
+            <isset property="packgz"/>
+          </not>
+        </and>
+      </or>
+    </condition>
+    <antcall target="copyjar"/>
+    <echo message="${src} ~ ${target.file}"/>
+  </target>
+
+
 </project>

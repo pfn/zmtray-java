@@ -180,11 +180,13 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
             @Override
             public void handleQuit(ApplicationEvent e) {
+                System.exit(0);
             }
 
             @Override
             public void handleReOpenApplication(ApplicationEvent e) {
-                OptionsDialog.showForm(ZimbraTray.this);
+                pollNow();
+                //OptionsDialog.showForm(ZimbraTray.this);
             }
             
         });
@@ -371,12 +373,9 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         String name = acct.getAccountName();
         List<Message> msgs = newMessages.get(acct);
         if (m == null && msgs != null) {
-            System.out.println("clear!");
             msgs.clear();
         } else if (m != null && msgs != null) {
-            System.out.println("remove!");
             msgs.remove(m);
-            System.out.println("Left: " + msgs.size());
         }
 
         updateTrayIcon();
@@ -470,6 +469,30 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         }
         updateTrayIcon();
     }
+    
+    private void updateOSXBadge() {
+        String os = System.getProperty("os.name");
+        if (!os.contains("Mac OS X"))
+            return;
+        Application app = Application.getApplication();
+        // Hack for java 1.6 on OSX
+        try {
+            int count = 0;
+            for (List<Message> msgs : newMessages.values())
+                count += msgs.size();
+            
+            Method m =  Application.class.getDeclaredMethod(
+                    "setDockIconBadge", String.class);
+            m.invoke(app, count == 0 ? null : "" + count);
+        }
+        catch (NoSuchMethodException e) {
+            // ignore
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
 
     public void newMessagesFound(Account account, List<Message> messages) {
         List<Message> msgs = newMessages.get(account);
@@ -558,6 +581,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
 
         if (!hasNew)
             MessageListView.hideView();
+        updateOSXBadge();
     }
 
     public void playSound(String name) {
