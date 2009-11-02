@@ -81,6 +81,7 @@
     <jar jarfile="${build.dir}/${dist.resource.file}">
       <zipfileset dir="${resources.dir}"
              includes="**/*.png"
+             excludes="**/user-icons/*.png"
                prefix="com/zimbra/app/systray/resources"/>
       <fileset dir="${resources.dir}/properties"
              includes="**/*.properties"/>

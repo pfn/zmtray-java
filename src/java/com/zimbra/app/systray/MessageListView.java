@@ -467,6 +467,19 @@ implements ListCellRenderer {
             }
         }
 
+        @Override
+        public void mouseClicked(final MouseEvent e) {
+            if (e.getClickCount() != 1 || e.getButton() != MouseEvent.BUTTON1)
+                return;
+            int index = list.locationToIndex(e.getPoint());
+            Rectangle r = list.getCellBounds(index, index);
+            if (r.contains(e.getPoint())) {
+                list.setSelectedIndex(index);
+                if (dismissAction.isEnabled())
+                    dismissAction.actionPerformed(null);
+            }
+        }
+
         private void maybeShowPopup(MouseEvent e) {
             if (e.isPopupTrigger()) {
                 Object item = list.getSelectedValue();
