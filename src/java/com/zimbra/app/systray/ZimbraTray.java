@@ -45,8 +45,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.UIManager;
 
 import com.apple.eawt.Application;
-import com.apple.eawt.ApplicationAdapter;
-import com.apple.eawt.ApplicationEvent;
 import com.hanhuy.common.ui.ConsoleViewer;
 import com.hanhuy.common.ui.DimensionEditor;
 import com.hanhuy.common.ui.FontEditor;
@@ -61,7 +59,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     private boolean suppressMailAlerts = false;
     private boolean showingNewAccountForm = false;
     
-    private TrayIcon trayicon;
+    private TrayIconSupport trayicon;
     private JPopupMenu menu;
     private PopupMenu awtMenu; // used for OSX dock menu
     
@@ -172,24 +170,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         Application app = Application.getApplication();
         app.addPreferencesMenuItem();
         app.setEnabledPreferencesMenu(true);
-        app.addApplicationListener(new ApplicationAdapter() {
-            @Override
-            public void handlePreferences(ApplicationEvent e) {
-                OptionsDialog.showForm(ZimbraTray.this);
-            }
-
-            @Override
-            public void handleQuit(ApplicationEvent e) {
-                System.exit(0);
-            }
-
-            @Override
-            public void handleReOpenApplication(ApplicationEvent e) {
-                pollNow();
-                //OptionsDialog.showForm(ZimbraTray.this);
-            }
-            
-        });
+        OSXSupport.addApplicationAdapter(this, app);
         // Hack for java 1.6 on OSX
         try {
             Method m =  Application.class.getDeclaredMethod(
@@ -269,7 +250,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
             }
         });
         
-        trayicon = new TrayIcon(NORMAL_ICON.getImage(), this);
+        trayicon = new TrayIconSupport(NORMAL_ICON.getImage(), this);
         trayicon.setJPopupMenu(menu);
         trayicon.setToolTip(getString("defaultToolTip"));
         trayicon.setImageAutoSize(true);

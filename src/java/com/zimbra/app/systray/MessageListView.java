@@ -7,16 +7,22 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowFocusListener;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.InputMap;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JList;
@@ -24,12 +30,15 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
 import javax.swing.ListCellRenderer;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
 import com.hanhuy.common.ui.Util;
@@ -41,6 +50,7 @@ implements ListCellRenderer {
     private ZimbraTray zt;
     private ListCellRenderer defaultRenderer = new DefaultListCellRenderer();
     private MessageView view = new MessageView();
+    private Future<?> autoCloseFuture;
     
     private final static MessageListView INSTANCE = new MessageListView();
     private final static int SCROLLPANE_THRESHOLD = 5;
@@ -49,11 +59,121 @@ implements ListCellRenderer {
     
     private final JList list = new JList();
     
+    private boolean performingAction = false;
     private JDialog dlg;
     private Color background = Color.white;
     private JScrollPane pane = new JScrollPane(
             ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
             ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+    private Action hideAction = new Action(getString("hideAction"),
+                getInt("hideActionMnemonic"),
+                getString("hideActionAccelerator"), new Runnable() {
+        public void run() {
+            hideView(); 
+        }
+    });
+    
+    private Action dismissAction = new Action(getString("dismissItemAction"),
+            getInt("dismissItemMnemonic"),
+            getString("dismissItemAccelerator"), new Runnable() {
+        @Override
+        public void run() {
+            Message m = (Message) list.getSelectedValue();
+            dismissMessageAlert(m);
+        }
+    });
+    
+    private Action openAction = new Action(getString("openItemAction"),
+            getInt("openItemMnemonic"),
+            getString("openItemAccelerator"), new Runnable() {
+        @Override
+        public void run() {
+            Message m = (Message) list.getSelectedValue();
+            Account a = m.getAccount();
+            zt.openClient(a, m);
+        }
+    });
+    
+    private Action readAction = new Action(getString("markItemReadAction"),
+            getInt("markItemReadMnemonic"),
+            getString("markItemReadAccelerator"), new Runnable() {
+        @Override
+        public void run() {
+            Message m = (Message) list.getSelectedValue();
+            dismissMessageAlert(m);
+            doMessageAction(m, MessageAction.READ, null);
+        }
+    });
+    
+    private Action flagAction = new Action(getString("flagItemAction"),
+            getInt("flagItemMnemonic"),
+            getString("flagItemAccelerator"), new Runnable() {
+        @Override
+        public void run() {
+            Message m = (Message) list.getSelectedValue();
+            dismissMessageAlert(m);
+            doMessageAction(m, MessageAction.FLAG, null);
+        }
+    });
+    
+    private Action tagAction = new Action(getString("tagItemAction"),
+            getInt("tagItemMnemonic"), getString("tagItemAccelerator"),
+            new Runnable() {
+        @Override
+        public void run() {
+            //Message m = (Message) list.getSelectedValue();
+            /*
+                String tags = JOptionPane.showInputDialog(dlg,
+                        getString("tagText"), getString("tagTitle"),
+                        JOptionPane.QUESTION_MESSAGE);
+                if (tags == null || "".equals(tags.trim()))
+                    return;
+             */
+            // TODO implement tagItem
+            //doMessageAction(m, MessageAction.UPDATE, tags);
+            JOptionPane.showMessageDialog(dlg,
+                    "Tagging messages is not implemented, yet",
+                    "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
+            //dismissMessageAlert(m);
+        }
+    });
+    
+    private Action moveAction = new Action(getString("moveItemAction"),
+            getInt("moveItemMnemonic"), getString("moveItemAccelerator"),
+            new Runnable() {
+        @Override
+        public void run() {
+            //Message m = (Message) list.getSelectedValue();
+            JOptionPane.showMessageDialog(dlg,
+                    "Moving messages is not implemented, yet",
+                    "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
+            //dismissMessageAlert(m);
+            // TODO implement moveItem
+        }
+    });
+    
+    private Action junkAction = new Action(getString("junkItemAction"),
+            getInt("junkItemMnemonic"), getString("junkItemAccelerator"),
+            new Runnable() {
+        @Override
+        public void run() {
+            Message m = (Message) list.getSelectedValue();
+            dismissMessageAlert(m);
+            doMessageAction(m, MessageAction.SPAM, null);
+        }
+    });
+    
+    private Action deleteAction = new Action(getString("deleteItemAction"),
+            getInt("deleteItemMnemonic"),
+            getString("deleteItemAccelerator"), new Runnable() {
+        @Override
+        public void run() {
+            Message m = (Message) list.getSelectedValue();
+            dismissMessageAlert(m);
+            doMessageAction(m, MessageAction.TRASH, null);
+        }
+    });
     
     public Component getListCellRendererComponent(JList list, Object value,
             int idx, boolean selected, boolean focused) {
@@ -70,6 +190,8 @@ implements ListCellRenderer {
             } else {
                 jc.setBorder(new EmptyBorder(i));
             }
+            // TODO set message fragment in tooltip instead?
+            //jc.setToolTipText(((Message)value).getFragment());
         } else {
             c = defaultRenderer.getListCellRendererComponent(
                 list, "<html><b><i>" + value, idx, false, false);
@@ -82,130 +204,79 @@ implements ListCellRenderer {
         list.setCellRenderer(this);
         list.addMouseListener(new ListMouseListener());
 
+        mapAction(hideAction);
+        mapAction(dismissAction);
+        mapAction(openAction);
+        mapAction(readAction);
+        mapAction(flagAction);
+        mapAction(tagAction);
+        mapAction(moveAction);
+        mapAction(junkAction);
+        mapAction(deleteAction);
+        
+        dismissAction.setEnabled(false);
+        openAction.setEnabled(false);
+        readAction.setEnabled(false);
+        flagAction.setEnabled(false);
+        tagAction.setEnabled(false);
+        moveAction.setEnabled(false);
+        junkAction.setEnabled(false);
+        deleteAction.setEnabled(false);
+        
+        list.addListSelectionListener(new ListSelectionListener() {
+            public void valueChanged(ListSelectionEvent e) {
+                cancelAutoClose();
+                Object value = list.getSelectedValue();
+                boolean enabled = value instanceof Message;
+                dismissAction.setEnabled(enabled);
+                openAction.setEnabled(enabled);
+                readAction.setEnabled(enabled);
+                flagAction.setEnabled(enabled);
+                tagAction.setEnabled(enabled);
+                moveAction.setEnabled(enabled);
+                junkAction.setEnabled(enabled);
+                deleteAction.setEnabled(enabled);
+            }
+        });
         initMenu();
     }
 
-    // TODO use swing action framework, accelerators, mnemonics, etc.
     private void initMenu() {
-        ActionListener hideListener = new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                hideView();
-            }
-        };
         JMenuItem item;
-        item = new JMenuItem(getString("hideAlertItem"));
-        item.addActionListener(hideListener);
+        item = new JMenuItem(hideAction);
         nothingMenu = new JPopupMenu();
         nothingMenu.add(item);
 
         messageMenu = new JPopupMenu();
         
-        item = new JMenuItem(getString("dismissAlertItem"));
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Message m = (Message) list.getSelectedValue();
-                dismissMessageAlert(m);
-            }
-        });
+        item = new JMenuItem(dismissAction);
         messageMenu.add(item);
         
-        item = new JMenuItem(getString("openItem"));
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Message m = (Message) list.getSelectedValue();
-                Account a = m.getAccount();
-                zt.openClient(a, m);
-            }
-        });
+        item = new JMenuItem(openAction);
         messageMenu.add(item);
         
         messageMenu.addSeparator();
         
-        item = new JMenuItem(getString("markItemRead"));
+        item = new JMenuItem(readAction);
         messageMenu.add(item);
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Message m = (Message) list.getSelectedValue();
-                dismissMessageAlert(m);
-                doMessageAction(m, MessageAction.READ, null);
-            }
-        });
-        item = new JMenuItem(getString("markItemFlag"));
+        item = new JMenuItem(flagAction);
         messageMenu.add(item);
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Message m = (Message) list.getSelectedValue();
-                dismissMessageAlert(m);
-                doMessageAction(m, MessageAction.FLAG, null);
-            }
-        });
-        item = new JMenuItem(getString("tagItem"));
+        item = new JMenuItem(tagAction);
         messageMenu.add(item);
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //Message m = (Message) list.getSelectedValue();
-                /*
-                String tags = JOptionPane.showInputDialog(dlg,
-                        getString("tagText"), getString("tagTitle"),
-                        JOptionPane.QUESTION_MESSAGE);
-                if (tags == null || "".equals(tags.trim()))
-                    return;
-                 */
-                // TODO implement tagItem
-                //doMessageAction(m, MessageAction.UPDATE, tags);
-                JOptionPane.showMessageDialog(dlg,
-                        "Tagging messages is not implemented, yet",
-                        "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
-                //dismissMessageAlert(m);
-            }
-        });
-        item = new JMenuItem(getString("moveItem"));
+        item = new JMenuItem(moveAction);
         messageMenu.add(item);
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //Message m = (Message) list.getSelectedValue();
-                JOptionPane.showMessageDialog(dlg,
-                        "Moving messages is not implemented, yet",
-                        "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
-                //dismissMessageAlert(m);
-                // TODO implement moveItem
-            }
-        });
         
         messageMenu.addSeparator();
         
-        item = new JMenuItem(getString("markItemJunk"));
+        item = new JMenuItem(junkAction);
         messageMenu.add(item);
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Message m = (Message) list.getSelectedValue();
-                dismissMessageAlert(m);
-                doMessageAction(m, MessageAction.SPAM, null);
-            }
-        });
         
-        item = new JMenuItem(getString("deleteItem"));
+        item = new JMenuItem(deleteAction);
         messageMenu.add(item);
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                Message m = (Message) list.getSelectedValue();
-                dismissMessageAlert(m);
-                doMessageAction(m, MessageAction.TRASH, null);
-            }
-        });
         
         messageMenu.addSeparator();
         
-        item = new JMenuItem(getString("hideAlertItem"));
-        item.addActionListener(hideListener);
+        item = new JMenuItem(hideAction);
         messageMenu.add(item);
     }
     
@@ -236,8 +307,8 @@ implements ListCellRenderer {
         dlg.add(list);
     }
     // TODO add animation
-    // TODO auto-timeout window (5 seconds, not if focused, etc.)
-    public static synchronized void showView(ZimbraTray zt, List<?> items) {
+    public static synchronized void showView(
+            final ZimbraTray zt, List<?> items) {
         INSTANCE.view.resetPreferredWidth();
         INSTANCE.zt = zt;
         
@@ -253,29 +324,67 @@ implements ListCellRenderer {
             EtchedBorder b1 = new EtchedBorder(EtchedBorder.RAISED);
             MatteBorder b2 = new MatteBorder(new Insets(3,3,3,3), Color.blue);
             ((JComponent) dlg.getContentPane()).setBorder(
-            new CompoundBorder(b1, b2));
+                    new CompoundBorder(b1, b2));
+            
+            final JDialog fdlg = dlg;
+            dlg.addComponentListener(new ComponentAdapter() {
+                Dimension d = null;
+                public void componentResized(ComponentEvent e) {
+                    if (d == null || !d.equals(fdlg.getSize())) {
+                        setWindowLocation(fdlg);
+                    }
+                    d = fdlg.getSize();
+                }
+            });
+
+            dlg.addWindowFocusListener(new WindowFocusListener() {
+                @Override public void windowGainedFocus(WindowEvent e) {
+                } // ignore
+
+                @Override
+                public void windowLostFocus(WindowEvent e) {
+                    if (!INSTANCE.performingAction) {
+                        INSTANCE.setupAutoClose();
+                    }
+                }
+
+            });
+            
         }
         
-        _showView(items);
+        INSTANCE._showView(items);
     }
     
-    private static void _showView(List<?> items) {
+    private void cancelAutoClose() {
+        if (autoCloseFuture != null) {
+            autoCloseFuture.cancel(true);
+        }
+    }
+    private void setupAutoClose() {
+        cancelAutoClose();
+        int seconds = Prefs.getPrefs().getAutoHideTime();
+        if (seconds != -1) {
+            autoCloseFuture = zt.getExecutor().schedule(new AutoCloser(),
+                        seconds, TimeUnit.SECONDS);
+        }
+        
+    }
+    
+    private class AutoCloser implements Runnable {
+        @Override
+        public void run() {
+            dlg.setVisible(false);
+            autoCloseFuture = null;
+        }
+    }
+    
+    private void _showView(List<?> items) {
         DefaultListModel model = new DefaultListModel();
         for (Object item : items) {
             model.addElement(item);
         }
-        INSTANCE.list.setModel(model);
+        list.setModel(model);
         
-        final JDialog dlg = INSTANCE.dlg;
-        dlg.addComponentListener(new ComponentAdapter() {
-            Dimension d = null;
-            public void componentResized(ComponentEvent e) {
-                if (d == null || !d.equals(dlg.getSize())) {
-                    setWindowLocation(dlg);
-                }
-                d = dlg.getSize();
-            }
-        });
         dlg.pack();
         int msgCount = 0;
         Enumeration<?> e = model.elements();
@@ -285,25 +394,27 @@ implements ListCellRenderer {
                 msgCount++;
         }
         if (msgCount > SCROLLPANE_THRESHOLD) {
-            int width = dlg.getSize().width + INSTANCE.useScrollPane();
-            Component c = INSTANCE.getListCellRendererComponent(null,
+            int width = dlg.getSize().width + useScrollPane();
+            Component c = getListCellRendererComponent(null,
                     model.elementAt(1), 0, false, false);
             dlg.setSize(new Dimension(width, SCROLLPANE_THRESHOLD *
                     c.getPreferredSize().height));
         } else {
-            INSTANCE.useList();
+            useList();
             dlg.pack();
         }
         setWindowLocation(dlg);
-        if (!dlg.isVisible())
+        if (!dlg.isVisible()) {
+            setupAutoClose();
             dlg.setVisible(true);
+        }
     }
 
     public static void refreshView(List<?> items) {
         JDialog dlg = INSTANCE.dlg;
         if (dlg == null || !dlg.isVisible())
             return;
-        _showView(items);
+        INSTANCE._showView(items);
     }
 
     private static void setWindowLocation(JDialog dlg) {
@@ -381,5 +492,33 @@ implements ListCellRenderer {
                 h.doMessageAction(m, a, args);
             }
         });
+    }
+
+    class Action extends AbstractAction {
+        private Runnable r;
+        Action(String name, int mnemonic, String accelerator, Runnable r) {
+            putValue(NAME, name);
+            putValue(MNEMONIC_KEY, mnemonic);
+            putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(accelerator));
+            this.r = r;
+        }
+
+        public void actionPerformed(ActionEvent e) {
+            performingAction = true;
+            try {
+                r.run();
+            }
+            finally {
+                performingAction = false;
+            }
+        }
+    }
+    
+    private void mapAction(Action action) {
+        ActionMap am = list.getActionMap();
+        InputMap  im = list.getInputMap();
+        am.put(action.getValue(Action.NAME), action);
+        im.put((KeyStroke) action.getValue(Action.ACCELERATOR_KEY),
+                action.getValue(Action.NAME));
     }
 }

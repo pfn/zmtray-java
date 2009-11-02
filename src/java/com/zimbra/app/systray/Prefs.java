@@ -20,6 +20,7 @@ public class Prefs {
     
     private final static String SYMMETRIC_ALGORITHM = "AES";
     
+    private final static String AUTO_HIDE_KEY       = "autoHideTime";
     private final static String SOAP_DEBUG_KEY      = "soapDebug";
     private final static String ACCOUNTS_KEY        = "accounts";
     private final static String SECRET_KEY          = "secret";
@@ -165,6 +166,14 @@ public class Prefs {
         int i = prefs.getInt(
                 APPT_LOCATION_KEY, ScreenLocation.CENTER.ordinal());
         return ScreenLocation.values()[i];
+    }
+    
+    public void setAutoHideTime(int time) {
+        prefs.putInt(AUTO_HIDE_KEY, time);
+    }
+    
+    public int getAutoHideTime() {
+        return prefs.getInt(AUTO_HIDE_KEY, -1);
     }
     
     public void setMessageAlertLocation(ScreenLocation l) {

@@ -3,18 +3,22 @@ package com.zimbra.app.systray.options;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
-import javax.swing.JPanel;
 import javax.swing.ButtonGroup;
+import javax.swing.JComboBox;
+import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
+import com.hanhuy.common.ui.ResourceBundleForm;
 import com.zimbra.app.systray.Prefs;
 import com.zimbra.app.systray.ZimbraTray;
 
-import com.hanhuy.common.ui.ResourceBundleForm;
-
 
 public class GeneralOptionsForm extends ResourceBundleForm {
+    private final static int[] AUTO_HIDE_TIMES = {
+        5, 10, 15, 30, 60, -1
+    };
     private JPanel panel = new JPanel();
     private JRadioButton mTopLeft     = new JRadioButton();
     private JRadioButton mTopRight    = new JRadioButton();
@@ -27,7 +31,7 @@ public class GeneralOptionsForm extends ResourceBundleForm {
     private JRadioButton cCenter      = new JRadioButton();
     private JRadioButton cBottomLeft  = new JRadioButton();
     private JRadioButton cBottomRight = new JRadioButton();
-
+    
     public GeneralOptionsForm(ZimbraTray zt) {
         layout();
     }
@@ -129,6 +133,33 @@ public class GeneralOptionsForm extends ResourceBundleForm {
         cCenter.addActionListener(al);
         cBottomRight.addActionListener(al);
         cBottomLeft.addActionListener(al);
+        
+        final JComboBox autoHideTime = new JComboBox(generateTimeStrings());
+        autoHideTime.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int t = AUTO_HIDE_TIMES[autoHideTime.getSelectedIndex()];
+                Prefs.getPrefs().setAutoHideTime(t);
+            }
+        });
+        int autoTime = Prefs.getPrefs().getAutoHideTime();
+        int idx;
+        for (idx = 0; idx < AUTO_HIDE_TIMES.length; idx++) {
+            if (autoTime == AUTO_HIDE_TIMES[idx])
+                break;
+        }
+        autoHideTime.setSelectedIndex(idx != -1 ?
+                idx : AUTO_HIDE_TIMES.length - 1);
+        panel.add(autoHideTime, "autoHideTime");
+    }
+    
+    private String[] generateTimeStrings() {
+        ArrayList<String> strings = new ArrayList<String>();
+        for (int time : AUTO_HIDE_TIMES) {
+            strings.add(time == -1 ?
+                    getString("neverString") : format("seconds", time));
+        }
+        return strings.toArray(new String[strings.size()]);
     }
 
     public Component getComponent() {

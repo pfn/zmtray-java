@@ -8,9 +8,9 @@ import javax.swing.JPopupMenu;
 
 import org.jdesktop.swinghelper.tray.JXTrayIcon;
 
-public class TrayIcon {
+public class TrayIconSupport {
     Object trayicon;
-    public TrayIcon(Image image, final ZimbraTray zmtray) {
+    public TrayIconSupport(Image image, final ZimbraTray zmtray) {
         trayicon = new _TrayIcon(image, zmtray);
     }
     
