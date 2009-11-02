@@ -505,11 +505,15 @@ implements ListCellRenderer {
 
         public void actionPerformed(ActionEvent e) {
             performingAction = true;
+            int idx = list.getSelectedIndex();
             try {
                 r.run();
             }
             finally {
                 performingAction = false;
+                int s = list.getModel().getSize();
+                list.setSelectedIndex(s > idx ? idx : s - 1);
+                list.requestFocusInWindow();
             }
         }
     }
