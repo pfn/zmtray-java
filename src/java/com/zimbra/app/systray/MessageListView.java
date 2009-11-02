@@ -512,8 +512,10 @@ implements ListCellRenderer {
             finally {
                 performingAction = false;
                 int s = list.getModel().getSize();
-                list.setSelectedIndex(s > idx ? idx : s - 1);
-                list.requestFocusInWindow();
+                if (s > 0) {
+                    list.setSelectedIndex(s > idx ? idx : s - 1);
+                    list.requestFocusInWindow();
+                }
             }
         }
     }
