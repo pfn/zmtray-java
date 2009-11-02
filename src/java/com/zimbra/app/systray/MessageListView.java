@@ -1,5 +1,6 @@
 package com.zimbra.app.systray;
 
+import java.awt.EventQueue;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -406,7 +407,13 @@ implements ListCellRenderer {
         setWindowLocation(dlg);
         if (!dlg.isVisible()) {
             setupAutoClose();
+            dlg.setFocusableWindowState(false);
             dlg.setVisible(true);
+            EventQueue.invokeLater(new Runnable() {
+                public void run() {
+                    dlg.setFocusableWindowState(true);
+                }
+            });
         }
     }
 
