@@ -482,7 +482,8 @@ implements ListCellRenderer {
             Rectangle r = list.getCellBounds(index, index);
             if (r.contains(e.getPoint())) {
                 list.setSelectedIndex(index);
-                if (dismissAction.isEnabled())
+                if (Prefs.getPrefs().getClickToDismiss() &&
+                        dismissAction.isEnabled())
                     dismissAction.actionPerformed(null);
             }
         }

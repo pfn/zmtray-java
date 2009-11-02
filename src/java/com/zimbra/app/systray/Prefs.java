@@ -20,6 +20,7 @@ public class Prefs {
     
     private final static String SYMMETRIC_ALGORITHM = "AES";
     
+    private final static String CLICK_DISMISS_KEY   = "clickToDismiss";
     private final static String AUTO_HIDE_KEY       = "autoHideTime";
     private final static String SOAP_DEBUG_KEY      = "soapDebug";
     private final static String ACCOUNTS_KEY        = "accounts";
@@ -148,6 +149,14 @@ public class Prefs {
     
     public boolean isSoundDisabled() {
         return prefs.getBoolean(DISABLED_SOUND_KEY, false);
+    }
+    
+    public void setClickToDismiss(boolean b) {
+        prefs.putBoolean(CLICK_DISMISS_KEY, b);
+    }
+    
+    public boolean getClickToDismiss() {
+        return prefs.getBoolean(CLICK_DISMISS_KEY, false);
     }
     
     public void setSoapDebug(boolean b) {

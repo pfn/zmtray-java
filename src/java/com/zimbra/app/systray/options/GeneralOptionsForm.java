@@ -7,6 +7,7 @@ import java.util.ArrayList;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JComboBox;
+import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
@@ -20,6 +21,7 @@ public class GeneralOptionsForm extends ResourceBundleForm {
         5, 10, 15, 30, 60, -1
     };
     private JPanel panel = new JPanel();
+    private JCheckBox    clickToDismiss = new JCheckBox();
     private JRadioButton mTopLeft     = new JRadioButton();
     private JRadioButton mTopRight    = new JRadioButton();
     private JRadioButton mCenter      = new JRadioButton();
@@ -151,6 +153,14 @@ public class GeneralOptionsForm extends ResourceBundleForm {
         autoHideTime.setSelectedIndex(idx != -1 ?
                 idx : AUTO_HIDE_TIMES.length - 1);
         panel.add(autoHideTime, "autoHideTime");
+
+        clickToDismiss.setSelected(Prefs.getPrefs().getClickToDismiss());
+        clickToDismiss.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                Prefs.getPrefs().setClickToDismiss(clickToDismiss.isSelected());
+            }
+        });
+        panel.add(clickToDismiss, "clickToDismiss");
     }
     
     private String[] generateTimeStrings() {
