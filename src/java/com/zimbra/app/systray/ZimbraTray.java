@@ -92,8 +92,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         Thread.setDefaultUncaughtExceptionHandler(
                 new Thread.UncaughtExceptionHandler() {
             public void uncaughtException(Thread thread, Throwable t) {
-                System.err.println(t.getClass().getName() + ": " +
-                        thread.getName());
+                System.err.println( thread.getName() + ":" +
+                        t.getClass().getName());
                 t.printStackTrace();
                 EventQueue.invokeLater(new Runnable() {
                     public void run() {
@@ -343,6 +343,15 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     }
     
     public void openClient(Account acct, Message m) {
+        try {
+            Class.forName("java.awt.Desktop");
+        } catch (ClassNotFoundException e) {
+            JOptionPane.showMessageDialog(HIDDEN_PARENT,
+                    getString("noJavaAwtDesktop"),
+                    getString("cannotOpenWebClient"),
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (!Desktop.isDesktopSupported()) {
             JOptionPane.showMessageDialog(HIDDEN_PARENT,
                     getString("noJavaAwtDesktop"),
