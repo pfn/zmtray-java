@@ -394,12 +394,12 @@ implements ListCellRenderer {
             if (o instanceof Message)
                 msgCount++;
         }
-        if (msgCount > SCROLLPANE_THRESHOLD) {
-            int width = dlg.getSize().width + useScrollPane();
+        Dimension d = list.getPreferredSize();
+        if (d.height > getInt("preferredHeight")) {
+            int width = d.width + useScrollPane();
             Component c = getListCellRendererComponent(null,
                     model.elementAt(1), 0, false, false);
-            dlg.setSize(new Dimension(width, SCROLLPANE_THRESHOLD *
-                    c.getPreferredSize().height));
+            dlg.setSize(new Dimension(width, getInt("preferredHeight")));
         } else {
             useList();
             dlg.pack();
