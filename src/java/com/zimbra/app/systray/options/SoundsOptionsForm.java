@@ -164,6 +164,7 @@ public class SoundsOptionsForm extends ResourceBundleForm {
         if (audioClip != null) {
             if (audioClip.isRunning())
                 audioClip.stop();
+            audioClip.close();
             audioClip = null;
         }
     }
