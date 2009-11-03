@@ -54,7 +54,6 @@ implements ListCellRenderer {
     private Future<?> autoCloseFuture;
     
     private final static MessageListView INSTANCE = new MessageListView();
-    private final static int SCROLLPANE_THRESHOLD = 5;
     private JPopupMenu messageMenu;
     private JPopupMenu nothingMenu;
     
@@ -397,8 +396,6 @@ implements ListCellRenderer {
         Dimension d = list.getPreferredSize();
         if (d.height > getInt("preferredHeight")) {
             int width = d.width + useScrollPane();
-            Component c = getListCellRendererComponent(null,
-                    model.elementAt(1), 0, false, false);
             dlg.setSize(new Dimension(width, getInt("preferredHeight")));
         } else {
             useList();

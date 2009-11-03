@@ -90,16 +90,7 @@ public class MessageView extends ResourceBundleForm {
         component.invalidate();
     }
     
-    private int getWidth(JLabel l) {
-        if (!l.isVisible())
-            return 0;
-        Font f = l.getFont();
-        return l.getFontMetrics(f).stringWidth(l.getText());
-    }
-
-    //private void wrapLabel(JLabel l, int width) {
     private void wrapLabel(JLabel l) {
-        //preferredWidth = Math.max(preferredWidth, width);
         Font f = l.getFont();
         FontMetrics fm = l.getFontMetrics(f);
         int fontHeight = fm.getHeight();
