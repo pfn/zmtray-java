@@ -104,6 +104,10 @@ public class AccountEditForm extends ResourceBundleForm {
                         calendarNames.add(o.toString());
                     account.setSubscribedCalendarNames(calendarNames);
                     account.setSubscribedMailFolders(folderNames);
+
+                    AccountsForm.reset();
+                    zt.resetAccount(account);
+
                     af.show(AccountsForm.ACCOUNT_LIST_CARD);
                 }
             }

@@ -304,6 +304,7 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
         AccountHandler h = accountHandlerMap.remove(acct.getId());
         h.shutdown();
         removeAccountFromTray(acct);
+        newMessages.remove(acct);
         startNewAccount(Prefs.getPrefs().getAccount(acct.getAccountName()));
     }
     
