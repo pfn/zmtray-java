@@ -81,7 +81,8 @@ public class MessageView extends ResourceBundleForm {
         } else {
             setComponentVisible("fragmentText", true);
             fragment.setText("<html>" + m.getFragment());
-            wrapLabel(fragment, getWidth(subject));
+            //wrapLabel(fragment, getWidth(subject));
+            wrapLabel(fragment);
         }
     }
     
@@ -103,8 +104,9 @@ public class MessageView extends ResourceBundleForm {
         return l.getFontMetrics(f).stringWidth(l.getText());
     }
 
-    private void wrapLabel(JLabel l, int width) {
-        preferredWidth = Math.max(preferredWidth, width);
+    //private void wrapLabel(JLabel l, int width) {
+    private void wrapLabel(JLabel l) {
+        //preferredWidth = Math.max(preferredWidth, width);
         Font f = l.getFont();
         FontMetrics fm = l.getFontMetrics(f);
         int fontHeight = fm.getHeight();
