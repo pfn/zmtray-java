@@ -21,7 +21,8 @@ public class GeneralOptionsForm extends ResourceBundleForm {
         5, 10, 15, 30, 60, -1
     };
     private JPanel panel = new JPanel();
-    private JCheckBox    clickToDismiss = new JCheckBox();
+    private JCheckBox    clickToDismiss  = new JCheckBox();
+    private JCheckBox    animateMessages = new JCheckBox();
     private JRadioButton mTopLeft     = new JRadioButton();
     private JRadioButton mTopRight    = new JRadioButton();
     private JRadioButton mCenter      = new JRadioButton();
@@ -161,6 +162,15 @@ public class GeneralOptionsForm extends ResourceBundleForm {
             }
         });
         panel.add(clickToDismiss, "clickToDismiss");
+        
+        animateMessages.setSelected(Prefs.getPrefs().getAnimateMessageAlerts());
+        animateMessages.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                Prefs.getPrefs().setAnimateMessageAlerts(
+                        animateMessages.isSelected());
+            }
+        });
+        panel.add(animateMessages, "animateMessages");
     }
     
     private String[] generateTimeStrings() {

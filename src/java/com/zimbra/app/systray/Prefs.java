@@ -32,6 +32,7 @@ public class Prefs {
     private final static String DISABLED_SOUND_KEY  = "soundsDisabled";
     private final static String APPT_LOCATION_KEY   = "apptLocation";
     private final static String MSG_LOCATION_KEY    = "msgLocation";
+    private final static String ANIM_MSG_ALERTS_KEY = "animateMessageAlerts";
     private final static Prefs INSTANCE;
     private final SecretKey key;
     private final Cipher cipher;
@@ -157,6 +158,14 @@ public class Prefs {
     
     public boolean getClickToDismiss() {
         return prefs.getBoolean(CLICK_DISMISS_KEY, false);
+    }
+    
+    public void setAnimateMessageAlerts(boolean b) {
+        prefs.putBoolean(ANIM_MSG_ALERTS_KEY, b);
+    }
+    
+    public boolean getAnimateMessageAlerts() {
+        return prefs.getBoolean(ANIM_MSG_ALERTS_KEY, true);
     }
     
     public void setSoapDebug(boolean b) {

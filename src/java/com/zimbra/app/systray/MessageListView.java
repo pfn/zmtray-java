@@ -1,15 +1,11 @@
 package com.zimbra.app.systray;
 
-import java.awt.EventQueue;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
@@ -42,7 +38,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 import com.hanhuy.common.ui.ResourceBundleForm;
-import com.hanhuy.common.ui.Util;
 import com.sun.awt.AWTUtilities;
 import com.zimbra.app.systray.AccountHandler.MessageAction;
 
@@ -60,7 +55,7 @@ implements ListCellRenderer {
     private final JList list = new JList();
     
     private boolean performingAction = false;
-    private JDialog dlg;
+    private SlidingDialog dlg;
     private Color background = Color.white;
     private JScrollPane pane = new JScrollPane(
             ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -70,7 +65,7 @@ implements ListCellRenderer {
                 getInt("hideActionMnemonic"),
                 getString("hideActionAccelerator"), new Runnable() {
         public void run() {
-            hideView(); 
+            dlg.setVisible(false);
         }
     });
     
@@ -296,29 +291,28 @@ implements ListCellRenderer {
         }
     }
 
-    private int useScrollPane() {
-        dlg.getContentPane().removeAll();
+    private void useScrollPane() {
         pane.setViewportView(list);
-        dlg.add(pane);
-        return pane.getVerticalScrollBar().getPreferredSize().width;
+        dlg.setComponent(pane);
+        int width = list.getPreferredSize().width;
+        pane.setSize(new Dimension(width, getInt("preferredHeight")));
+        pane.setPreferredSize(new Dimension(width, getInt("preferredHeight")));
+        pane.setMinimumSize(new Dimension(width, getInt("preferredHeight")));
     }
     private void useList() {
-        dlg.getContentPane().removeAll();
-        dlg.add(list);
+        dlg.setComponent(list);
     }
-    // TODO add animation
     public static synchronized void showView(
             final ZimbraTray zt, List<?> items) {
         INSTANCE.view.resetPreferredWidth();
         INSTANCE.zt = zt;
         
-        JDialog dlg = INSTANCE.dlg;
+        SlidingDialog dlg = INSTANCE.dlg;
         if (dlg == null) {
-            dlg = new JDialog(zt.HIDDEN_PARENT);
+            dlg = new SlidingDialog(zt.HIDDEN_PARENT);
             INSTANCE.dlg = dlg;
             setWindowTranslucent();
             dlg.setAlwaysOnTop(true);
-            INSTANCE.useList();
             dlg.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
             dlg.setUndecorated(true);
             EtchedBorder b1 = new EtchedBorder(EtchedBorder.RAISED);
@@ -326,17 +320,6 @@ implements ListCellRenderer {
             ((JComponent) dlg.getContentPane()).setBorder(
                     new CompoundBorder(b1, b2));
             
-            final JDialog fdlg = dlg;
-            dlg.addComponentListener(new ComponentAdapter() {
-                Dimension d = null;
-                public void componentResized(ComponentEvent e) {
-                    if (d == null || !d.equals(fdlg.getSize())) {
-                        setWindowLocation(fdlg);
-                    }
-                    d = fdlg.getSize();
-                }
-            });
-
             dlg.addWindowFocusListener(new WindowFocusListener() {
                 @Override public void windowGainedFocus(WindowEvent e) {
                 } // ignore
@@ -395,22 +378,15 @@ implements ListCellRenderer {
         }
         Dimension d = list.getPreferredSize();
         if (d.height > getInt("preferredHeight")) {
-            int width = d.width + useScrollPane();
-            dlg.setSize(new Dimension(width, getInt("preferredHeight")));
+            useScrollPane();
         } else {
             useList();
             dlg.pack();
         }
-        setWindowLocation(dlg);
         if (!dlg.isVisible()) {
             setupAutoClose();
-            dlg.setFocusableWindowState(false);
+            dlg.setScreenLocation(Prefs.getPrefs().getMessageAlertLocation());
             dlg.setVisible(true);
-            EventQueue.invokeLater(new Runnable() {
-                public void run() {
-                    dlg.setFocusableWindowState(true);
-                }
-            });
         }
     }
 
@@ -419,37 +395,6 @@ implements ListCellRenderer {
         if (dlg == null || !dlg.isVisible())
             return;
         INSTANCE._showView(items);
-    }
-
-    private static void setWindowLocation(JDialog dlg) {
-        Dimension size = dlg.getSize();
-        Rectangle r = GraphicsEnvironment.getLocalGraphicsEnvironment()
-                .getMaximumWindowBounds();
-        Prefs.ScreenLocation l = Prefs.getPrefs().getMessageAlertLocation();
-        int x = 0, y = 0;
-        switch (l) {
-        case TOP_LEFT:
-            x = r.x;
-            y = r.y;
-            break;
-        case TOP_RIGHT:
-            x = r.width - size.width + r.x;
-            y = r.y;
-            break;
-        case BOTTOM_RIGHT:
-            x = r.width - size.width + r.x;
-            y = r.height - size.height + r.y;
-            break;
-        case BOTTOM_LEFT:
-            x = r.x;
-            y = r.height - size.height + r.y;
-            break;
-        }
-        if (Prefs.ScreenLocation.CENTER == l) {
-            Util.centerWindow(dlg);
-        } else {
-            dlg.setLocation(x, y);
-        }
     }
 
     private class ListMouseListener extends MouseAdapter {

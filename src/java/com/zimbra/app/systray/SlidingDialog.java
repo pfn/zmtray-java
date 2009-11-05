@@ -1,20 +1,15 @@
 package com.zimbra.app.systray;
 
-import java.awt.Color;
-import java.awt.Insets;
-
-import java.awt.Point;
-import java.awt.Rectangle;
+import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Graphics;
-import java.awt.Dimension;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
-import java.awt.event.ActionListener;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-
-import javax.swing.border.*;
 
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -27,9 +22,6 @@ public class SlidingDialog extends JDialog {
 
     private final Rectangle r;
     private long start;
-
-    // TODO turn this into a Pref
-    private boolean _animate = true;
 
     private JComponent c;
     private Dimension size;
@@ -44,6 +36,17 @@ public class SlidingDialog extends JDialog {
     }
 
     public void setComponent(JComponent c) {
+        if (!isVisible())
+            _setComponent(c, true);
+        else {
+            this.c = c;
+            getContentPane().removeAll();
+            add(c);
+            pack();
+        }
+    }
+    
+    public void _setComponent(JComponent c, boolean show) {
         this.c = c;
 
         add(c);
@@ -52,6 +55,8 @@ public class SlidingDialog extends JDialog {
         getContentPane().removeAll();
         canvas = new SlidingCanvas(c);
         add(canvas);
+        if (!show)
+            canvas.setPosition(c.getHeight());
         pack();
     }
 
@@ -64,7 +69,7 @@ public class SlidingDialog extends JDialog {
         private final long animateTime;
         Animation(boolean show) {
             this.show = show;
-            animateTime = size.height * 4;
+            animateTime = size.height * 3;
         }
         Point finalLocation = calculateWindowLocation();
         int y = r.y + r.height;
@@ -84,6 +89,15 @@ public class SlidingDialog extends JDialog {
                 timer.stop();
                 timer = null;
             } else {
+                if (!show) {
+                    // cancel animation, nothing to animate
+                    if (c.getHeight() == 0) {
+                        timer.stop();
+                        timer = null;
+                        SlidingDialog.super.setVisible(false);
+                        return;
+                    }
+                }
                 double done = (double) elapsed / animateTime;
                 int _pos = (int) (size.height * done);
                 int position = show ? _pos : size.height - _pos;
@@ -111,18 +125,31 @@ public class SlidingDialog extends JDialog {
     }
 
     @Override
+    public void pack() {
+        super.pack();
+        if (timer == null) {
+            setLocation(calculateWindowLocation());
+        }
+    }
+
+    @Override
     public void setVisible(boolean b) {
         setFocusableWindowState(false);
-        if (_animate && location != Prefs.ScreenLocation.CENTER) {
+        if (Prefs.getPrefs().getAnimateMessageAlerts() &&
+                location != Prefs.ScreenLocation.CENTER) {
             if (timer != null) {
                 timer.stop();
                 timer = null;
+            }
+            if (!b) {
+                _setComponent(c, b);
             }
             start = System.currentTimeMillis();
             timer = new Timer(ANIMATE_FRAME_TIME, new Animation(b));
             timer.start();
         } else {
             if (b) {
+                getContentPane().removeAll();
                 add(c);
                 pack();
                 setLocation(calculateWindowLocation());
@@ -178,6 +205,9 @@ public class SlidingDialog extends JDialog {
             setSize(size);
         }
     
+        public void update(Graphics g) {
+            paint(g);
+        }
         @Override
         public void paint(Graphics g) {
             if (size.height == 0)
@@ -219,7 +249,7 @@ public class SlidingDialog extends JDialog {
             y = r.y + (r.height - getSize().height) / 2;
             break;
         case BOTTOM_RIGHT:
-            x = r.width - size.width + r.x;
+            x = r.width  - size.width  + r.x;
             y = r.height - size.height + r.y;
             break;
         case BOTTOM_LEFT:
@@ -229,31 +259,5 @@ public class SlidingDialog extends JDialog {
         }
 
         return new Point(x, y);
-    }
-
-    public static void main(String[] args) throws Exception {
-        ZimbraTray zt = new ZimbraTray();
-        TrustManager tm = new TrustManager(zt);
-        javax.swing.JLabel l = new javax.swing.JLabel(
-                tm.getString("certificateWarning"));
-        final SlidingDialog d = new SlidingDialog(zt.HIDDEN_PARENT);
-
-        d.setUndecorated(true);
-        EtchedBorder b1 = new EtchedBorder(EtchedBorder.RAISED);
-        MatteBorder b2 = new MatteBorder(new Insets(3,3,3,3), Color.blue);
-        ((JComponent) d.getContentPane()).setBorder(
-                new CompoundBorder(b1, b2));
-
-
-        for (Prefs.ScreenLocation loc : Prefs.ScreenLocation.values()) {
-            d.setComponent(l);
-            d.setScreenLocation(loc);
-            d.setVisible(true);
-            Thread.sleep(2000);
-            d.setVisible(false);
-            Thread.sleep(2000);
-
-        }
-        System.exit(0);
     }
 }
