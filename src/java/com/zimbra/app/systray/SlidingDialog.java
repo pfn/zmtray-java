@@ -28,6 +28,7 @@ public class SlidingDialog extends JDialog {
     private final Rectangle r;
     private long start;
 
+    // TODO turn this into a Pref
     private boolean _animate = true;
 
     private JComponent c;
