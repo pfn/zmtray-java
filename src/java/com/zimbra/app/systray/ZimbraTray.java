@@ -91,6 +91,8 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     
     public static void main(String[] args) throws Exception {
         final ZimbraTray zt = new ZimbraTray();
+        zt.checkIfRunning();
+
         Thread.setDefaultUncaughtExceptionHandler(
                 new Thread.UncaughtExceptionHandler() {
             public void uncaughtException(Thread thread, Throwable t) {
@@ -123,8 +125,6 @@ public class ZimbraTray extends ResourceBundleForm implements Runnable {
     }
     
     public ZimbraTray() {
-        checkIfRunning();
-
         NORMAL_ICON = (ImageIcon) getIcon("emailIcon");
         NEW_MAIL_ICON = (ImageIcon) getIcon("newEmailIcon");
         HIDDEN_PARENT = new JFrame("zmtray hidden parent frame");
