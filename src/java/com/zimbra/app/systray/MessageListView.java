@@ -29,6 +29,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 import javax.swing.ListCellRenderer;
+import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -139,12 +140,23 @@ implements ListCellRenderer {
             new Runnable() {
         @Override
         public void run() {
-            //Message m = (Message) list.getSelectedValue();
-            JOptionPane.showMessageDialog(dlg,
-                    "Moving messages is not implemented, yet",
-                    "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
-            //dismissMessageAlert(m);
-            // TODO implement moveItem
+            Message m = (Message) list.getSelectedValue();
+            AccountHandler ah = zt.getAccountHandlerBy(m.getAccount());
+            List<String> folders = ah.getAvailableMailFolders();
+            JList folderList = new JList(folders.toArray());
+            folderList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            JScrollPane p = new JScrollPane(folderList,
+                    ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+            int r = JOptionPane.showConfirmDialog(dlg,
+                    new Object[] { getString("moveItemPrompt"), p },
+                    getString("moveItemTitle"), JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE);
+            Object value = folderList.getSelectedValue();
+            if (value == null || r != JOptionPane.OK_OPTION)
+                return;
+            ah.moveMessage(m, (String) value);
+            dismissMessageAlert(m);
         }
     });
     
@@ -356,7 +368,8 @@ implements ListCellRenderer {
     private class AutoCloser implements Runnable {
         @Override
         public void run() {
-            dlg.setVisible(false);
+            if (dlg.isVisible())
+                dlg.setVisible(false);
             autoCloseFuture = null;
         }
     }

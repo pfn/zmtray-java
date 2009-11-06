@@ -112,7 +112,8 @@ public class SlidingDialog extends JDialog {
                     break;
                 case BOTTOM_RIGHT:
                 case BOTTOM_LEFT:
-                    yPos = y - position;
+                    yPos = r.y + y - position;
+                    yPos = r.y + y - getSize().height;
                     break;
                 }
                 setLocation(finalLocation.x, yPos);

@@ -453,6 +453,21 @@ public class AccountHandler implements Runnable {
         }
     }
     
+    public void moveMessage(Message m, String folder) {
+        String folderId = null;
+        for (GetFolderResponse.Folder f : mailFolders) {
+            if (f.name.equals(folder)) {
+                folderId = Integer.toString(f.id);
+                break;
+            }
+        }
+        if (folderId == null) {
+            System.out.println("Unable to find folder: " + folder);
+            return;
+        }
+        doMessageAction(m, MessageAction.MOVE, folderId);
+    }
+
     public void doMessageAction(Message m, MessageAction op, String args) {
         MsgActionRequest r = new MsgActionRequest();
         r.action.id = "" + m.getId();
