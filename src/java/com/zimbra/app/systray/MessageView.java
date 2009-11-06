@@ -45,6 +45,8 @@ public class MessageView extends ResourceBundleForm {
         return component;
     }
     
+    // TODO show interesting flags: urgent, has attachment, etc.
+    // TODO possibly show folder name?
     public void setMessage(Message m) {
         String name = m.getSenderName();
         String f = m.getSenderAddress();
@@ -74,7 +76,6 @@ public class MessageView extends ResourceBundleForm {
         } else {
             setComponentVisible("fragmentText", true);
             fragment.setText("<html>" + m.getFragment());
-            //wrapLabel(fragment, getWidth(subject));
             wrapLabel(fragment);
         }
     }

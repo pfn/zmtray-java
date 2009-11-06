@@ -19,6 +19,9 @@ public class SearchResponse {
         @Element(type=Type.ATTRIBUTE, optional=false)
         public int id;
 
+        @Element(name="f", type=Type.ATTRIBUTE)
+        public String flags;
+
         @Element(name="fr", type=Type.TEXT)
         public String fragment;
 
