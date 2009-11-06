@@ -21,6 +21,8 @@ import com.zimbra.app.soap.messages.AuthRequest;
 import com.zimbra.app.soap.messages.AuthResponse;
 import com.zimbra.app.soap.messages.BatchRequest;
 import com.zimbra.app.soap.messages.BatchResponse;
+import com.zimbra.app.soap.messages.CreateTagRequest;
+import com.zimbra.app.soap.messages.CreateTagResponse;
 import com.zimbra.app.soap.messages.DismissCalendarItemAlarmRequest;
 import com.zimbra.app.soap.messages.DismissCalendarItemAlarmResponse;
 import com.zimbra.app.soap.messages.GetFolderRequest;
@@ -29,6 +31,8 @@ import com.zimbra.app.soap.messages.GetInfoRequest;
 import com.zimbra.app.soap.messages.GetInfoResponse;
 import com.zimbra.app.soap.messages.GetPrefsRequest;
 import com.zimbra.app.soap.messages.GetPrefsResponse;
+import com.zimbra.app.soap.messages.GetTagRequest;
+import com.zimbra.app.soap.messages.GetTagResponse;
 import com.zimbra.app.soap.messages.MsgActionRequest;
 import com.zimbra.app.soap.messages.MsgActionResponse;
 import com.zimbra.app.soap.messages.SearchRequest;
@@ -453,6 +457,61 @@ public class AccountHandler implements Runnable {
         }
     }
     
+    public void tagMessage(Message m, String[] tags) {
+        GetTagRequest greq = new GetTagRequest();
+        currentAccount.set(account);
+        
+        try {
+            GetTagResponse gresp = SoapInterface.call(greq,
+                    GetTagResponse.class, account.getServiceURL(), authToken);
+            HashSet<String> toCreate = new HashSet<String>();
+            HashMap<String,Integer> tagMap =
+                    new HashMap<String,Integer>();
+            for (GetTagResponse.Tag t : gresp.tags)
+                tagMap.put(t.name, t.id);
+            for (String t : tags) {
+                if (!tagMap.containsKey(t)) {
+                    toCreate.add(t);
+                }
+            }
+            for (String t : toCreate) {
+                CreateTagRequest creq = new CreateTagRequest();
+                creq.tag.name = t;
+                CreateTagResponse cresp = SoapInterface.call(creq,
+                        CreateTagResponse.class, account.getServiceURL(),
+                        authToken);
+                tagMap.put(t, cresp.tag.id);
+            }
+            HashSet<Integer> tagIds = new HashSet<Integer>();
+            for (String t : tags) {
+                tagIds.add(tagMap.get(t));
+            }
+            
+            StringBuilder b = new StringBuilder();
+            for (Integer i : tagIds) {
+                b.append(i).append(",");
+            }
+            b.setLength(b.length() - 1);
+            doMessageAction(m, MessageAction.UPDATE, b.toString());
+        } catch (SOAPFaultException e) {
+            showMessage(account.getAccountName() + " : " + 
+                    e.reason.text, "Tag Message",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "IOException",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (SOAPException e) {
+            e.printStackTrace();
+            showMessage(account.getAccountName() + " : " + 
+                    e.getLocalizedMessage(), "SOAPException",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+        
+        currentAccount.set(null);
+    }
+
     public void moveMessage(Message m, String folder) {
         String folderId = null;
         for (GetFolderResponse.Folder f : mailFolders) {

@@ -118,20 +118,18 @@ implements ListCellRenderer {
             new Runnable() {
         @Override
         public void run() {
-            //Message m = (Message) list.getSelectedValue();
-            /*
-                String tags = JOptionPane.showInputDialog(dlg,
-                        getString("tagText"), getString("tagTitle"),
-                        JOptionPane.QUESTION_MESSAGE);
-                if (tags == null || "".equals(tags.trim()))
-                    return;
-             */
-            // TODO implement tagItem
-            //doMessageAction(m, MessageAction.UPDATE, tags);
-            JOptionPane.showMessageDialog(dlg,
-                    "Tagging messages is not implemented, yet",
-                    "Not yet implemented", JOptionPane.INFORMATION_MESSAGE);
-            //dismissMessageAlert(m);
+            Message m = (Message) list.getSelectedValue();
+            AccountHandler ah = zt.getAccountHandlerBy(m.getAccount());
+            String tags = JOptionPane.showInputDialog(dlg,
+                    getString("tagText"), getString("tagTitle"),
+                    JOptionPane.QUESTION_MESSAGE);
+            if (tags == null || "".equals(tags.trim()))
+                return;
+            String[] tagList = tags.split(",");
+            for (int i = 0; i < tagList.length; i++)
+                tagList[i] = tagList[i].trim();
+            ah.tagMessage(m, tagList);
+            dismissMessageAlert(m);
         }
     });
     
