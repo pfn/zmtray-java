@@ -26,6 +26,7 @@ public class SlidingDialog extends JDialog {
     private JComponent c;
     private Dimension size;
     private SlidingCanvas canvas;
+    private boolean okToAnimate = false;
 
     private Timer timer;
 
@@ -48,6 +49,11 @@ public class SlidingDialog extends JDialog {
     
     public void _setComponent(JComponent c, boolean show) {
         this.c = c;
+        
+        int width = c.getWidth();
+        int height = c.getHeight();
+        
+        okToAnimate = width != 0 && height != 0;
 
         add(c);
         pack();
@@ -137,7 +143,7 @@ public class SlidingDialog extends JDialog {
     public void setVisible(boolean b) {
         setFocusableWindowState(false);
         if (Prefs.getPrefs().getAnimateMessageAlerts() &&
-                location != Prefs.ScreenLocation.CENTER) {
+                location != Prefs.ScreenLocation.CENTER && okToAnimate) {
             if (timer != null) {
                 timer.stop();
                 timer = null;
@@ -170,12 +176,17 @@ public class SlidingDialog extends JDialog {
         private Dimension originalSize;
     
         public SlidingCanvas(JComponent c) {
-            size.width = c.getWidth();
+            int width = c.getWidth();
+            int height = c.getHeight();
+            if (!okToAnimate)
+                return;
+            
+            size.width = width;
             GraphicsEnvironment ge =
                     GraphicsEnvironment.getLocalGraphicsEnvironment();
             GraphicsConfiguration gc =
                     ge.getDefaultScreenDevice().getDefaultConfiguration();
-            image = gc.createCompatibleImage(c.getWidth(), c.getHeight());
+            image = gc.createCompatibleImage(width, height);
 
             originalSize = new Dimension(image.getWidth(), image.getHeight());
 
