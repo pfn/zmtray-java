@@ -17,7 +17,7 @@ public class SearchResponse {
     @Element(name="m")
     public static class Message {
         @Element(type=Type.ATTRIBUTE, optional=false)
-        public int id;
+        public long id;
 
         @Element(name="f", type=Type.ATTRIBUTE)
         public String flags;
@@ -48,13 +48,13 @@ public class SearchResponse {
     @Element(name="appt")
     public static class Appointment {
         @Element(type=Type.ATTRIBUTE, optional=false)
-        public int id;
+        public long id;
 
         @Element(type=Type.ATTRIBUTE, optional=false)
         public String name;
 
         @Element(type=Type.ATTRIBUTE, optional=false, name="dur")
-        public int duration;
+        public long duration;
 
         @Element
         public AlarmData alarmData;

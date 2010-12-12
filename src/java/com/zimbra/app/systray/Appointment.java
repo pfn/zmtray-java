@@ -27,8 +27,8 @@ public class Appointment {
 
     private Account account;
     public Account getAccount() { return account; }
-    private int id;
-    public int getId() { return id; }
+    private long id;
+    public long getId() { return id; }
 
     public String name;
     public String getName() { return name; }
@@ -58,14 +58,14 @@ public class Appointment {
     public String getOrganizerName() { return organizerName; }
 
     // in milliseconds
-    private int duration;
-    public int getDuration() { return duration; }
+    private long duration;
+    public long getDuration() { return duration; }
     
     public boolean isDismissed() { return dismissed; }
 
     @Override
     public int hashCode() {
-        return id;
+        return (int) id;
     }
 
     @Override

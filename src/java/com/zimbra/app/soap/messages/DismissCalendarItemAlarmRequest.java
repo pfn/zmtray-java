@@ -15,7 +15,7 @@ public class DismissCalendarItemAlarmRequest {
     @Element(name="appt")
     public static class Appointment {
         @Element(type=Type.ATTRIBUTE, optional=false)
-        public int id;
+        public long id;
         
         @Element(type=Type.ATTRIBUTE, optional=false)
         public long dismissedAt;

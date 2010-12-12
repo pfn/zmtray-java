@@ -61,7 +61,7 @@ public class AccountHandler implements Runnable {
     private boolean shutdown;
     private ScheduledFuture<?> f;
     
-    private HashSet<Integer> seenMailMessages = new HashSet<Integer>();
+    private HashSet<Long> seenMailMessages = new HashSet<Long>();
     private HashMap<String,GetFolderResponse.Folder> nameFolderMap =
             new HashMap<String,GetFolderResponse.Folder>();
     private ArrayList<GetFolderResponse.Folder> mailFolders =
@@ -278,7 +278,7 @@ public class AccountHandler implements Runnable {
             for (SearchResponse r : resp.searchResponses) {
                 if (r.messages.size() > 0) {
                     hasMessages = true;
-                    HashSet<Integer> foundMessages = new HashSet<Integer>();
+                    HashSet<Long> foundMessages = new HashSet<Long>();
                     ArrayList<Message> newMessages = new ArrayList<Message>();
                     ArrayList<Message> unread = new ArrayList<Message>();
                     for (SearchResponse.Message m : r.messages) {
@@ -415,8 +415,8 @@ public class AccountHandler implements Runnable {
     public void dismissAppointmentAlarms(List<Appointment> appts) {
         DismissCalendarItemAlarmRequest r =
                 new DismissCalendarItemAlarmRequest();
-        HashMap<Integer,Appointment> apptmap =
-                new HashMap<Integer,Appointment>();
+        HashMap<Long,Appointment> apptmap =
+                new HashMap<Long,Appointment>();
         for (Appointment appt : appts) {
             System.out.println("Attempting to dismiss: " + appt.getName());
             apptmap.put(appt.getId(), appt);

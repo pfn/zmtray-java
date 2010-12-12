@@ -16,8 +16,8 @@ public class Message {
     private Account account;
     public Account getAccount() { return account; }
 
-    private int id;
-    public int getId() { return id; }
+    private long id;
+    public long getId() { return id; }
 
     private String fragment;
     public String getFragment() { return fragment; }
@@ -33,7 +33,7 @@ public class Message {
 
     @Override
     public int hashCode() {
-        return id;
+        return (int) id;
     }
 
     @Override
