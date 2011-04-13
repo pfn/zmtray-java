@@ -1,0 +1,8 @@
+build
+build.properties
+dist
+.swp
+test/test.properties
+test/eclipse
+.classpath
+.project
